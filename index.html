@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Stride</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -124,6 +123,18 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
 /* TERRAIN PICKER */
 .terrain-btn{background:var(--surf3);border:.5px solid var(--bdr2);border-radius:10px;padding:8px 4px;color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center;line-height:1.4}
 .terrain-btn.sel{background:rgba(0,229,160,.12);border-color:var(--green);color:var(--green)}
+
+/* OFFLINE BANNER */
+.offline-banner{display:none;align-items:center;gap:8px;background:rgba(245,166,35,.12);color:var(--warn);font-size:12px;font-weight:600;padding:8px 12px;border-radius:10px;margin:0 16px 10px}
+.offline-banner.show{display:flex}
+
+/* NATIVE WEEKLY BAR CHART (no external library) */
+.bar-chart{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;height:140px;padding:0 4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.bar-val{font-size:10px;color:var(--muted);margin-bottom:4px;min-height:12px}
+.bar-fill{width:100%;max-width:28px;background:var(--green);border-radius:6px 6px 0 0;transition:height .4s;min-height:2px}
+.bar-day{font-size:11px;color:var(--muted);margin-top:6px}
+.bar-day.today{color:var(--green);font-weight:700}
 </style>
 </head>
 <body>
@@ -136,6 +147,9 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
     </div>
     <div class="streak" id="streak-badge">🔥 0 day streak</div>
   </div>
+
+  <!-- Offline indicator -->
+  <div class="offline-banner" id="offline-banner">📴 <span>Offline — everything still works, your data is saved on this device.</span></div>
 
   <!-- ══════════ HOME ══════════ -->
   <div class="page active" id="pg-home">
@@ -156,7 +170,9 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
         <button class="btn btn-b" id="gps-req-btn" onclick="askGPS()" style="font-size:14px;padding:11px">
           📡 Request GPS Permission
         </button>
-        <div id="gps-msg" style="font-size:12px;color:var(--muted);margin-top:7px;line-height:1.5"></div>
+        <div id="gps-msg" style="font-size:12px;color:var(--muted);margin-top:7px;line-height:1.5">
+          GPS uses your phone's location chip directly — it works with no signal bars, no WiFi, and no mobile data, as long as Location is turned on in your phone settings.
+        </div>
       </div>
 
       <!-- Manual sub-panel -->
@@ -386,7 +402,11 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
     </div>
 
     <div class="sec">Weekly km</div>
-    <div class="card"><div class="chart-wrap"><canvas id="wkchart"></canvas></div></div>
+    <div class="card">
+      <div class="chart-wrap" style="height:auto;padding-top:10px">
+        <div class="bar-chart" id="wkchart"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ══════════ ACHIEVEMENTS ══════════ -->
@@ -648,6 +668,17 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
 'use strict';
 
 // ══════════════════════════════════════════
+// OFFLINE BANNER
+// ══════════════════════════════════════════
+function updateOnlineStatus() {
+  const el = document.getElementById('offline-banner');
+  if (!navigator.onLine) el.classList.add('show');
+  else el.classList.remove('show');
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// ══════════════════════════════════════════
 // STORAGE
 // ══════════════════════════════════════════
 const DB = (() => {
@@ -723,7 +754,10 @@ function setMode(m) {
 }
 
 // ══════════════════════════════════════════
-// GPS PERMISSION  — the right way for Android
+// GPS PERMISSION
+// GPS itself is a hardware/satellite feature and works fully offline
+// (no WiFi or mobile data needed) once Location is enabled on the device
+// and the page has been granted permission at least once.
 // ══════════════════════════════════════════
 let gpsGranted = false;
 
@@ -746,7 +780,7 @@ function askGPS() {
   const btn = document.getElementById('gps-req-btn');
   btn.textContent = '⏳ Waiting for permission…';
   btn.disabled = true;
-  setGPSMsg('A popup may appear at the top of Chrome. Tap "Allow".');
+  setGPSMsg('A popup may appear at the top of Chrome. Tap "Allow". This works fully offline — no WiFi or data needed.');
 
   // This is the call that shows the native Android permission popup
   navigator.geolocation.getCurrentPosition(
@@ -755,7 +789,7 @@ function askGPS() {
       gpsGranted = true;
       const acc = Math.round(pos.coords.accuracy);
       setPill('gps-ok', `✅ GPS ready ±${acc}m`);
-      setGPSMsg('GPS is working. You can now start a workout.');
+      setGPSMsg('GPS is working — this keeps working with no signal bars, WiFi, or mobile data. You can now start a workout.');
       btn.textContent = '✅ GPS Granted — Ready!';
       btn.disabled = false;
       btn.classList.add('hidden');
@@ -778,17 +812,17 @@ function askGPS() {
           setGPSMsg(
             'Android Chrome blocks GPS on http:// addresses. You have two options:\n\n' +
             '1. Use Manual mode (enter stats yourself after your run) — works right now.\n\n' +
-            '2. Host the file on https:// — drag stride.html to netlify.com/drop on your PC, get a free https link, open on phone.'
+            '2. Open the file directly from your phone storage (file:// link) or host it once on https:// to grant permission — after that, GPS keeps working completely offline.'
           );
         } else {
           setPill('gps-err', '❌ Permission denied');
           setGPSMsg(
-            'You tapped Deny, or Chrome blocked it. Fix: open Chrome menu (⋮) → Settings → Site Settings → Location → find this site → change to Allow. Then tap Try Again.'
+            'You tapped Deny, or Chrome blocked it. Fix: open Chrome menu (⋮) → Settings → Site Settings → Location → find this site → change to Allow. Then tap Try Again. Also make sure Location is ON in your phone\'s system settings.'
           );
         }
       } else if (err.code === 2) {
         setPill('gps-warn', '⚠️ No signal');
-        setGPSMsg('GPS signal not found. Go outside away from buildings, then tap Try Again.');
+        setGPSMsg('GPS signal not found yet. Go outside away from tall buildings, then tap Try Again. (No WiFi or data needed — just open sky helps the GPS chip lock on.)');
       } else {
         setPill('gps-warn', '⚠️ Timeout');
         setGPSMsg('GPS timed out. Go outside and tap Try Again.');
@@ -1295,10 +1329,33 @@ function renderHome() {
   }).join('');
 }
 
-let wkChart = null;
+// ── NATIVE WEEKLY BAR CHART (no external library, fully offline) ──
+function renderWeeklyChart() {
+  const wkts = DB.get('workouts', []);
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const data = new Array(7).fill(0);
+  const now  = new Date();
+  for (const w of wkts) {
+    const diff = Math.floor((now - new Date(w.date))/86400000);
+    if (diff < 7) data[(new Date(w.date).getDay()+6)%7] += w.distKm;
+  }
+  const todayIdx = (now.getDay()+6)%7;
+  const maxV = Math.max(...data, 0.5); // avoid div-by-zero, give some headroom
+
+  const el = document.getElementById('wkchart');
+  el.innerHTML = data.map((v, i) => {
+    const pct = Math.max(2, Math.round((v / maxV) * 100));
+    const valTxt = v > 0 ? v.toFixed(1) : '';
+    return `<div class="bar-col">
+      <div class="bar-val">${valTxt}</div>
+      <div class="bar-fill" style="height:${pct}%"></div>
+      <div class="bar-day${i===todayIdx ? ' today' : ''}">${days[i]}</div>
+    </div>`;
+  }).join('');
+}
+
 function renderSettings() {
   const stats = DB.get('stats',{totalDistKm:0,totalCal:0,totalElevM:0,workouts:0,bestPace:null,totalSec:0});
-  const wkts  = DB.get('workouts',[]);
   setText('st-dist', (stats.totalDistKm||0).toFixed(1));
   setText('st-wkts', stats.workouts||0);
   setText('st-cal',  stats.totalCal||0);
@@ -1307,26 +1364,7 @@ function renderSettings() {
   const ap = stats.workouts>0 && stats.totalDistKm>0 ? stats.totalSec/stats.totalDistKm : null;
   setText('st-ap', fmtPace(ap));
 
-  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const data = new Array(7).fill(0);
-  const now  = new Date();
-  for (const w of wkts) {
-    const diff = Math.floor((now - new Date(w.date))/86400000);
-    if (diff < 7) data[(new Date(w.date).getDay()+6)%7] += w.distKm;
-  }
-  const ctx = document.getElementById('wkchart');
-  if (wkChart) wkChart.destroy();
-  wkChart = new Chart(ctx,{
-    type:'bar',
-    data:{ labels:days, datasets:[{data:data.map(v=>+v.toFixed(2)), backgroundColor:'#00e5a0', borderRadius:6, borderSkipped:false}] },
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b9098',font:{size:11}}},
-        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b9098',font:{size:11}},beginAtZero:true}
-      }
-    }
-  });
+  renderWeeklyChart();
 }
 
 function renderAchievements() {
@@ -1588,11 +1626,11 @@ function calcRHRHealth() {
 
   let label, color, tip;
   if      (rhr < 40)  { label='Athletic / Elite';   color='var(--purple)'; tip='Elite level. Typical of serious endurance athletes.'; }
-  else if (rhr < 50)  { label='Excellent';           color:'var(--green)';  tip='Excellent cardiovascular fitness. Heart is very efficient.'; }
+  else if (rhr < 50)  { label='Excellent';           color='var(--green)';  tip='Excellent cardiovascular fitness. Heart is very efficient.'; }
   else if (rhr < 60)  { label='Good';                color='var(--green)';  tip='Good heart efficiency. Keep up your aerobic training.'; }
   else if (rhr < 70)  { label='Normal';              color='var(--blue)';   tip='Normal range. Regular cardio will lower this over time.'; }
   else if (rhr < 80)  { label='Average';             color='var(--warn)';   tip='Average. 3× cardio sessions per week can improve this.'; }
-  else if (rhr < 100) { label='High-Normal';         color:'var(--warn)';   tip='Above average. Reduce stress, caffeine and increase aerobic exercise.'; }
+  else if (rhr < 100) { label='High-Normal';         color='var(--warn)';   tip='Above average. Reduce stress, caffeine and increase aerobic exercise.'; }
   else                 { label='Consult a Doctor';   color='var(--red)';    tip='Resting HR above 100 (tachycardia) — see a doctor.'; }
 
   lastResults.rhr2 = { rhr, label };
@@ -1660,55 +1698,6 @@ function calcWalk() {
   showResult('res-walk', vo2, age, gender, [
     `Time: ${min}:${String(sec).padStart(2,'0')} (${timeMin.toFixed(1)} min)`,
     `Finish HR: ${hr} bpm`,
-  ]);
-}
-
-// ── 4. 1.5-Mile Run Test ──────────────────
-// Formula (George et al., 1993 — timed run):
-// VO2max = 88.369 + (3.713 × genderM) − (0.1656 × weightKg)
-//          − (2.767 × timeMin)
-function calcMile() {
-  const m = parseFloat(document.getElementById('mile-min').value) || 0;
-  const s = parseFloat(document.getElementById('mile-sec').value) || 0;
-  if (!m && !s) return;
-  const timeMin = m + s/60;
-  if (timeMin < 5) return;
-  const { age, gender, weight } = getProfile();
-  const gM = gender === 'm' ? 1 : 0;
-  const vo2 = 88.369 + (3.713*gM) - (0.1656*weight) - (2.767*timeMin);
-  lastResults.mile = { vo2, timeMin };
-  showResult('res-mile', vo2, age, gender, [
-    `Time: ${m}:${String(Math.round(s)).padStart(2,'0')} (${timeMin.toFixed(2)} min)`,
-    `Pace: ${fmtPace(timeMin*60 / 2.414)} /km`,
-  ]);
-}
-
-// ── 5. Beep Test (20m Shuttle) ────────────
-// VO2max lookup table (Ramsbottom et al., 1988)
-// Approximation formula: VO2max = 6.65 − (35.8 × level) + ... 
-// Using validated polynomial from published tables:
-const BEEP_TABLE = {
-  // [level]: [shuttles → VO2 approx at max shuttle of that level]
-  1:28.8,2:30.2,3:31.8,4:33.6,5:35.6,6:37.6,7:39.6,8:41.6,
-  9:43.6,10:45.2,11:46.8,12:48.0,13:49.2,14:50.4,15:51.6,
-  16:52.8,17:54.0,18:55.2,19:56.4,20:57.6,21:58.8
-};
-// Shuttle correction: each shuttle within a level adds ~0.18 ml/kg/min
-function calcBeep() {
-  const lv = parseInt(document.getElementById('beep-lv').value);
-  const sh = parseInt(document.getElementById('beep-sh').value);
-  if (!lv || lv < 1 || lv > 21) return;
-  const { age, gender } = getProfile();
-  const baseVO2 = BEEP_TABLE[lv] || 28;
-  // max shuttles per level increase by 1 every ~3 levels
-  const maxSh = Math.min(3 + Math.floor(lv/3), 16);
-  const fraction = sh ? Math.min(sh/maxSh, 1) : 0.5;
-  const prevVO2 = lv > 1 ? (BEEP_TABLE[lv-1]||baseVO2-1.4) : 26;
-  const vo2 = prevVO2 + (baseVO2-prevVO2) * fraction;
-  lastResults.beep = { vo2, lv, sh };
-  showResult('res-beep', vo2, age, gender, [
-    `Level ${lv}, Shuttle ${sh||'?'}`,
-    `Total shuttles ≈ ${(lv*maxSh + (sh||0))}`,
   ]);
 }
 
@@ -1871,6 +1860,8 @@ document.getElementById('td').textContent =
   new Date().toLocaleDateString('en-IN',{weekday:'long',month:'long',day:'numeric'});
 document.getElementById('weight').value = DB.get('weight',70);
 document.getElementById('btn-start').disabled = true;
+updateOnlineStatus();
+loadProfile();
 
 // Check if GPS was already granted (from a previous visit to an https page)
 if (navigator.permissions && navigator.permissions.query) {
