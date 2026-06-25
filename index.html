@@ -235,16 +235,47 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
       </div>
 
       <div class="g2" style="margin-top:10px">
-        <div class="met"><div class="mval g" id="hd">0.00</div><div class="mlab">km</div></div>
-        <div class="met"><div class="mval b" id="hp">--:--</div><div class="mlab">min/km</div></div>
+        <div class="met"><div class="mval g" id="hd">0.00</div><div class="mlab">km distance</div></div>
+        <div class="met"><div class="mval b" id="hspd">0.0</div><div class="mlab">km/h speed</div></div>
       </div>
+
+      <!-- PACE CARD — the main new section -->
+      <div style="background:var(--surf3);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Pace</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Live</div>
+            <div style="font-size:22px;font-weight:800;color:var(--green);letter-spacing:-0.5px" id="hp-live">--:--</div>
+            <div style="font-size:10px;color:var(--muted)">min/km</div>
+          </div>
+          <div style="border-left:.5px solid var(--bdr2);border-right:.5px solid var(--bdr2)">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Avg</div>
+            <div style="font-size:22px;font-weight:800;color:var(--blue);letter-spacing:-0.5px" id="hp-avg">--:--</div>
+            <div style="font-size:10px;color:var(--muted)">min/km</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Best</div>
+            <div style="font-size:22px;font-weight:800;color:var(--purple);letter-spacing:-0.5px" id="hp-best">--:--</div>
+            <div style="font-size:10px;color:var(--muted)">min/km</div>
+          </div>
+        </div>
+
+        <!-- Pace trend: last 10 GPS samples shown as mini bars -->
+        <div style="margin-top:10px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:5px">Pace trend (last samples) — shorter bar = faster</div>
+          <div id="pace-bars" style="display:flex;align-items:flex-end;gap:3px;height:28px">
+            <!-- filled by JS -->
+          </div>
+        </div>
+      </div>
+
       <div class="g2">
-        <div class="met"><div class="mval w" id="hc">0</div><div class="mlab">kcal</div></div>
+        <div class="met"><div class="mval w" id="hc">0</div><div class="mlab">kcal burned</div></div>
         <div class="met"><div class="mval p" id="heu">+0 m</div><div class="mlab">elev up</div></div>
       </div>
       <div class="g2">
         <div class="met"><div class="mval pk" id="hed">-0 m</div><div class="mlab">elev down</div></div>
-        <div class="met"><div class="mval" style="color:var(--blue)" id="hspd">0.0</div><div class="mlab">km/h</div></div>
+        <div class="met"><div class="mval" style="color:var(--warn)" id="hlap">--:--</div><div class="mlab">last km pace</div></div>
       </div>
 
       <div style="margin-top:4px">
@@ -769,6 +800,10 @@ const W = {
   lastAlt: null, altBuf: [],
   paceWin: [], lastLat: null, lastLon: null, lastGPSt: null,
   speedKmh: 0, paceSecKm: 0, bestPace: Infinity,
+  paceHistory: [],   // all raw pace samples — for trend bars + avg
+  lapStartM: 0,      // distM at start of current 1km lap
+  lapStartT: 0,      // elapsed sec at start of current 1km lap
+  lapPaceSec: 0,     // completed last-km lap pace (sec/km)
   goalKm: 5, goalOn: true, goalReached: false,
   timerIv: null, watchId: null,
   paused: false, pausedAt: 0, totalPaused: 0,
@@ -817,6 +852,18 @@ function onPos(pos) {
           if (W.paceWin.length > 5) W.paceWin.shift();
           W.paceSecKm = W.paceWin.reduce((a,b)=>a+b,0) / W.paceWin.length;
           if (W.paceSecKm > 30 && W.paceSecKm < W.bestPace) W.bestPace = W.paceSecKm;
+
+          // Store in pace history for trend bars + avg (cap at 60 samples)
+          W.paceHistory.push(W.paceSecKm);
+          if (W.paceHistory.length > 60) W.paceHistory.shift();
+
+          // Lap detection — compute pace of each completed 1km lap
+          if (W.distM - W.lapStartM >= 1000) {
+            const lapSec  = W.elapsed - W.lapStartT;
+            W.lapPaceSec  = lapSec; // time to run 1km = sec/km
+            W.lapStartM   = W.distM;
+            W.lapStartT   = W.elapsed;
+          }
         }
       }
     }
@@ -855,17 +902,54 @@ function onPosErr(err) {
 
 function updateLiveUI() {
   const km = W.distM / 1000;
+
+  // Basic metrics
   document.getElementById('hd').textContent   = km.toFixed(2);
-  document.getElementById('hp').textContent   = fmtPace(W.paceSecKm);
+  document.getElementById('hspd').textContent = W.speedKmh.toFixed(1);
   document.getElementById('heu').textContent  = '+' + Math.round(W.elevUp)   + ' m';
   document.getElementById('hed').textContent  = '-' + Math.round(W.elevDown) + ' m';
-  document.getElementById('hspd').textContent = W.speedKmh.toFixed(1);
 
+  // ── PACE: Live (smoothed 5-sample window) ──
+  document.getElementById('hp-live').textContent = fmtPace(W.paceSecKm);
+
+  // ── PACE: Avg (total elapsed / total distance) ──
+  const avgPaceVal = km > 0 && W.elapsed > 0 ? W.elapsed / km : 0;
+  document.getElementById('hp-avg').textContent  = fmtPace(avgPaceVal);
+
+  // ── PACE: Best (fastest smoothed sample ever this session) ──
+  document.getElementById('hp-best').textContent =
+    isFinite(W.bestPace) && W.bestPace > 0 ? fmtPace(W.bestPace) : '--:--';
+
+  // ── PACE: Last completed km lap ──
+  document.getElementById('hlap').textContent =
+    W.lapPaceSec > 0 ? fmtPace(W.lapPaceSec) : '--:--';
+
+  // ── PACE TREND BARS (last up to 20 history samples) ──
+  const bars  = document.getElementById('pace-bars');
+  const hist  = W.paceHistory.slice(-20);
+  if (hist.length > 1) {
+    const minP = Math.min(...hist);
+    const maxP = Math.max(...hist);
+    const range = maxP - minP || 1;
+    bars.innerHTML = hist.map((p, i) => {
+      // Height: faster pace = shorter bar (inverted) — 4px min, 28px max
+      const h   = Math.round(4 + ((p - minP) / range) * 24);
+      // Color: green if at/near best, blue if avg, orange if slowing
+      const rel = (p - minP) / range; // 0 = fastest, 1 = slowest
+      const col = rel < 0.25 ? 'var(--green)' : rel < 0.6 ? 'var(--blue)' : 'var(--warn)';
+      const isLatest = i === hist.length - 1;
+      return `<div style="flex:1;height:${h}px;background:${col};border-radius:3px 3px 0 0;
+                opacity:${isLatest ? 1 : 0.55 + (i/hist.length)*0.45};
+                ${isLatest ? 'outline:1px solid rgba(255,255,255,.3)' : ''}"></div>`;
+    }).join('');
+  }
+
+  // ── GOAL BAR ──
   if (W.goalOn) {
     const pct = Math.min(100, (km / W.goalKm) * 100);
-    document.getElementById('gbar').style.width = pct + '%';
-    document.getElementById('goal-pct').textContent = Math.round(pct) + '%';
-    document.getElementById('goal-lbl').textContent = km.toFixed(2) + ' / ' + W.goalKm.toFixed(2) + ' km';
+    document.getElementById('gbar').style.width        = pct + '%';
+    document.getElementById('goal-pct').textContent    = Math.round(pct) + '%';
+    document.getElementById('goal-lbl').textContent    = km.toFixed(2) + ' / ' + W.goalKm.toFixed(2) + ' km';
   }
 }
 
@@ -899,6 +983,7 @@ function startWorkout() {
     lastAlt:null, altBuf:[], paceWin:[],
     lastLat:null, lastLon:null, lastGPSt:null,
     speedKmh:0, paceSecKm:0, bestPace:Infinity,
+    paceHistory:[], lapStartM:0, lapStartT:0, lapPaceSec:0,
     goalReached:false,
     goalKm: getGoalKm(),
     goalOn: document.getElementById('tog-goal').classList.contains('on'),
