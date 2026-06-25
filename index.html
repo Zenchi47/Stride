@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Stride</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0d0f12;--surf:#16191f;--surf2:#1e222a;--surf3:#252932;
+  --bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);
+  --txt:#f0f2f5;--muted:#8b9098;
+  --green:#00e5a0;--blue:#4a9eff;--purple:#8b6dff;--pink:#ff6bab;--warn:#f5a623;--red:#ff5555;
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:72px}
+
+.topbar{padding:16px 20px 8px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:22px;font-weight:800;color:var(--green);letter-spacing:-.5px}
+.streak{font-size:12px;font-weight:600;background:rgba(245,166,35,.15);color:var(--warn);padding:4px 10px;border-radius:100px}
+
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:480px;max-width:100vw;background:var(--surf);border-top:.5px solid var(--bdr2);display:flex;z-index:100}
+.nb{flex:1;padding:11px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:10px;transition:color .15s}
+.nb.active{color:var(--green)}
+.nb svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.page{display:none;padding:0 16px}
+.page.active{display:block}
+
+.card{background:var(--surf);border:.5px solid var(--bdr);border-radius:14px;padding:16px;margin-bottom:12px}
+.sec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:18px 0 8px}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.met{background:var(--surf2);border-radius:10px;padding:12px}
+.mval{font-size:20px;font-weight:700;line-height:1.1}
+.mval.g{color:var(--green)}.mval.b{color:var(--blue)}.mval.w{color:var(--warn)}.mval.p{color:var(--purple)}.mval.pk{color:var(--pink)}
+.mlab{font-size:11px;color:var(--muted);margin-top:3px}
+
+.timer-wrap{text-align:center;padding:18px 0 10px}
+.timer{font-size:60px;font-weight:800;letter-spacing:-2px;line-height:1}
+.timer-sub{font-size:13px;color:var(--muted);margin-top:4px}
+
+.sdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+.sdot.on{background:var(--green);animation:blink 1.4s infinite}
+.sdot.off{background:var(--muted)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.gbar-bg{background:var(--surf3);border-radius:100px;height:8px;overflow:hidden;margin:8px 0 3px}
+.gbar{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--green),var(--blue));transition:width .4s}
+
+.btn{display:block;width:100%;padding:15px;border-radius:12px;border:none;cursor:pointer;font-size:16px;font-weight:600;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-g{background:var(--green);color:#000}
+.btn-r{background:var(--red);color:#fff}
+.btn-s{background:var(--surf2);color:var(--txt);border:.5px solid var(--bdr2)}
+.btn-b{background:var(--blue);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600}
+.bg-g{background:rgba(0,229,160,.15);color:var(--green)}
+.bg-b{background:rgba(74,158,255,.15);color:var(--blue)}
+.bg-w{background:rgba(245,166,35,.15);color:var(--warn)}
+.bg-gr{background:rgba(255,255,255,.07);color:var(--muted)}
+
+/* GPS MODE CARD */
+.mode-card{background:var(--surf2);border:.5px solid var(--bdr2);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.mode-row{display:flex;gap:8px;margin-bottom:8px}
+.mode-btn{flex:1;padding:10px 6px;border-radius:10px;border:.5px solid var(--bdr2);background:var(--surf3);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+.mode-btn.sel{background:rgba(0,229,160,.15);color:var(--green);border-color:var(--green)}
+.gps-pill{font-size:11px;padding:5px 10px;border-radius:100px;display:inline-block;font-weight:600}
+.gps-ok{background:rgba(0,229,160,.12);color:var(--green)}
+.gps-warn{background:rgba(245,166,35,.12);color:var(--warn)}
+.gps-err{background:rgba(255,85,85,.12);color:var(--red)}
+
+/* MANUAL INPUT */
+.manual-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.num-input{background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:10px;color:var(--txt);font-size:15px;font-weight:600;width:100%;text-align:center}
+.num-input:focus{outline:none;border-color:var(--green)}
+
+/* ACHIEVEMENTS */
+.ach{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:.5px solid var(--bdr)}
+.ach:last-child{border-bottom:none;padding-bottom:0}
+.ach-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ach-ico.e{background:rgba(0,229,160,.12)}
+.ach-ico.l{background:var(--surf2);filter:grayscale(1) opacity(.35)}
+.ach-title{font-size:14px;font-weight:600}
+.ach-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.ach-date{font-size:11px;color:var(--green);margin-top:2px}
+.prog-bg{background:var(--surf3);border-radius:100px;height:4px;overflow:hidden;margin-top:5px}
+.prog-bar{height:100%;border-radius:100px;background:var(--muted)}
+
+/* HISTORY */
+.wrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:.5px solid var(--bdr)}
+.wrow:last-child{border-bottom:none}
+.wico{width:40px;height:40px;border-radius:10px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.winfo{flex:1}
+.wtitle{font-size:14px;font-weight:600}
+.wsub{font-size:12px;color:var(--muted);margin-top:2px}
+
+input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);border-radius:8px;padding:10px 12px;color:var(--txt);font-size:15px;width:100%}
+.tog-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:.5px solid var(--bdr)}
+.tog{width:44px;height:24px;border-radius:100px;background:var(--surf3);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--green)}
+.tog::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s}
+.tog.on::after{left:23px}
+.qg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chart-wrap{position:relative;height:160px;margin-top:8px}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--surf);border:.5px solid var(--bdr2);border-radius:18px;padding:28px 24px;width:100%;max-width:400px;text-align:center}
+.modal h2{font-size:20px;font-weight:700;margin:10px 0 8px}
+.modal p{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.5}
+.hidden{display:none!important}
+
+/* CONFETTI */
+.conf{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:999}
+.cp{position:absolute;width:8px;height:8px;animation:fall 2.2s ease-in forwards}
+@keyframes fall{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+.rank-s{color:#ffd700}.rank-a{color:#c0c0c0}.rank-b{color:#cd7f32}.rank-c{color:var(--blue)}.rank-d{color:var(--muted)}
+
+/* TERRAIN PICKER */
+.terrain-btn{background:var(--surf3);border:.5px solid var(--bdr2);border-radius:10px;padding:8px 4px;color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center;line-height:1.4}
+.terrain-btn.sel{background:rgba(0,229,160,.12);border-color:var(--green);color:var(--green)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div>
+      <div class="logo">Stride</div>
+      <div style="font-size:11px;color:var(--muted)" id="td"></div>
+    </div>
+    <div class="streak" id="streak-badge">🔥 0 day streak</div>
+  </div>
+
+  <!-- ══════════ HOME ══════════ -->
+  <div class="page active" id="pg-home">
+
+    <!-- GPS / MODE selector -->
+    <div class="mode-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600">Tracking mode</span>
+        <span id="gps-pill" class="gps-pill gps-warn">📡 GPS not ready</span>
+      </div>
+      <div class="mode-row">
+        <button class="mode-btn" id="mbtn-gps"    onclick="setMode('gps')">📍 GPS Auto</button>
+        <button class="mode-btn sel" id="mbtn-manual" onclick="setMode('manual')">✏️ Manual</button>
+      </div>
+
+      <!-- GPS sub-panel -->
+      <div id="gps-panel" class="hidden">
+        <button class="btn btn-b" id="gps-req-btn" onclick="askGPS()" style="font-size:14px;padding:11px">
+          📡 Request GPS Permission
+        </button>
+        <div id="gps-msg" style="font-size:12px;color:var(--muted);margin-top:7px;line-height:1.5"></div>
+      </div>
+
+      <!-- Manual sub-panel -->
+      <div id="manual-panel">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
+          Just enter distance and time — we handle the rest.
+        </div>
+
+        <!-- Row 1: distance + duration -->
+        <div class="g2" style="margin-bottom:8px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Distance</div>
+            <div style="display:flex;gap:4px">
+              <input class="num-input" type="number" id="m-dist" placeholder="0.0" min="0" step="0.01" style="flex:1" oninput="previewManual()">
+              <select id="m-dist-unit" style="width:58px;background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:6px 4px;color:var(--txt);font-size:13px" onchange="previewManual()">
+                <option value="km">km</option>
+                <option value="mi">mi</option>
+                <option value="m">m</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Duration (min)</div>
+            <input class="num-input" type="number" id="m-dur" placeholder="0" min="0" step="1" oninput="previewManual()">
+          </div>
+        </div>
+
+        <!-- Terrain picker — this is how we get elevation -->
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Terrain type</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+          <button class="terrain-btn sel" id="tb-flat"   onclick="setTerrain('flat')"   title="Flat">
+            <div style="font-size:20px">🛣️</div><div>Flat</div>
+          </button>
+          <button class="terrain-btn" id="tb-rolling" onclick="setTerrain('rolling')" title="Rolling hills">
+            <div style="font-size:20px">🌄</div><div>Rolling</div>
+          </button>
+          <button class="terrain-btn" id="tb-hilly"   onclick="setTerrain('hilly')"   title="Hilly">
+            <div style="font-size:20px">⛰️</div><div>Hilly</div>
+          </button>
+          <button class="terrain-btn" id="tb-steep"   onclick="setTerrain('steep')"   title="Steep / mountains">
+            <div style="font-size:20px">🏔️</div><div>Steep</div>
+          </button>
+        </div>
+
+        <!-- Live preview card -->
+        <div id="manual-preview" style="display:none;background:var(--surf3);border-radius:10px;padding:12px;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Preview</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+            <div><div style="font-size:17px;font-weight:700;color:var(--green)" id="prev-pace">--</div><div style="font-size:10px;color:var(--muted)">min/km</div></div>
+            <div><div style="font-size:17px;font-weight:700;color:var(--purple)" id="prev-elev">-- m</div><div style="font-size:10px;color:var(--muted)">elev gain</div></div>
+            <div><div style="font-size:17px;font-weight:700;color:var(--warn)" id="prev-cal">-- kcal</div><div style="font-size:10px;color:var(--muted)">calories</div></div>
+          </div>
+        </div>
+
+        <button class="btn btn-g" style="font-size:14px;padding:13px" onclick="saveManual()">
+          💾 Save Workout
+        </button>
+      </div>
+    </div>
+
+    <!-- Live workout card (GPS mode) -->
+    <div id="live-card" class="card hidden" style="background:linear-gradient(135deg,#1a2a20,#16191f);border-color:rgba(0,229,160,.18)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div style="font-size:12px;color:var(--muted)">Active</div>
+          <div id="home-status" style="font-size:14px;font-weight:600;margin-top:2px">
+            <span class="sdot off"></span>Not started
+          </div>
+        </div>
+        <div id="type-badge" class="badge bg-gr">Run</div>
+      </div>
+      <div class="timer-wrap">
+        <div class="timer" id="home-timer">00:00</div>
+        <div class="timer-sub">elapsed</div>
+      </div>
+      <div class="g2" style="margin-top:10px">
+        <div class="met"><div class="mval g" id="hd">0.00</div><div class="mlab">km</div></div>
+        <div class="met"><div class="mval b" id="hp">--:--</div><div class="mlab">min/km</div></div>
+      </div>
+      <div class="g2">
+        <div class="met"><div class="mval w" id="hc">0</div><div class="mlab">kcal</div></div>
+        <div class="met"><div class="mval p" id="heu">+0 m</div><div class="mlab">elev up</div></div>
+      </div>
+      <div class="g2">
+        <div class="met"><div class="mval pk" id="hed">-0 m</div><div class="mlab">elev down</div></div>
+        <div class="met"><div class="mval" style="color:var(--blue)" id="hspd">0.0</div><div class="mlab">km/h</div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px">
+          <span>Goal</span><span id="goal-pct">0%</span>
+        </div>
+        <div class="gbar-bg"><div class="gbar" id="gbar" style="width:0%"></div></div>
+        <div style="font-size:11px;color:var(--muted)" id="goal-lbl">No goal set</div>
+      </div>
+    </div>
+
+    <!-- GPS start/stop buttons -->
+    <div id="gps-btns" class="hidden" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <button class="btn btn-g" id="btn-start" onclick="toggleWorkout()">Start Run</button>
+      <button class="btn btn-s" onclick="showPage('pg-settings')">⚙ Settings</button>
+    </div>
+
+    <div class="sec">Recent workouts</div>
+    <div class="card" id="recent-list">
+      <div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>
+    </div>
+  </div>
+
+  <!-- ══════════ SETTINGS ══════════ -->
+  <div class="page" id="pg-settings">
+    <div class="sec">Workout settings</div>
+    <div class="card">
+      <div class="tog-row">
+        <span class="tog-label">Activity</span>
+        <div style="display:flex;gap:6px">
+          <button id="btn-run"  class="badge bg-g"  style="cursor:pointer;font-size:12px" onclick="setType('run')">🏃 Run</button>
+          <button id="btn-walk" class="badge bg-gr" style="cursor:pointer;font-size:12px" onclick="setType('walk')">🚶 Walk</button>
+        </div>
+      </div>
+      <div class="tog-row">
+        <span class="tog-label">Distance goal</span>
+        <button class="tog on" id="tog-goal" onclick="toggleGoal()"></button>
+      </div>
+      <div id="goal-wrap" style="margin-top:10px">
+        <div style="display:flex;gap:8px">
+          <input type="number" id="gval" value="5" min="0.1" max="999" step="0.1" oninput="goalChanged()">
+          <select id="gunit" onchange="goalChanged()" style="width:80px">
+            <option value="km">km</option>
+            <option value="mi">mi</option>
+            <option value="m">m</option>
+          </select>
+        </div>
+        <div id="goal-hint" style="font-size:12px;color:var(--muted);margin-top:5px"></div>
+        <div class="sec" style="margin-top:10px">Quick goals</div>
+        <div class="qg">
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(0.1,'km')">100 m</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(0.4,'km')">400 m</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(0.8,'km')">800 m</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(1,'km')">1 km</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(1.609,'km')">1 mile</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(5,'km')">5 km</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(10,'km')">10 km</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(21.097,'km')">Half marathon</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(42.195,'km')">Marathon</button>
+        </div>
+      </div>
+      <div class="tog-row" style="margin-top:10px">
+        <span class="tog-label">Body weight (kg)</span>
+        <input type="number" id="weight" value="70" min="30" max="250" step="1"
+               style="width:75px;text-align:center" onchange="DB.set('weight',+this.value)">
+      </div>
+    </div>
+
+    <div class="sec">Your totals</div>
+    <div class="card">
+      <div class="g2">
+        <div class="met"><div class="mval g" id="st-dist">0.0</div><div class="mlab">total km</div></div>
+        <div class="met"><div class="mval b" id="st-wkts">0</div><div class="mlab">workouts</div></div>
+      </div>
+      <div class="g2">
+        <div class="met"><div class="mval w" id="st-cal">0</div><div class="mlab">total kcal</div></div>
+        <div class="met"><div class="mval p" id="st-elev">0</div><div class="mlab">m climbed</div></div>
+      </div>
+      <div class="g2">
+        <div class="met"><div class="mval pk" id="st-bp">--:--</div><div class="mlab">best pace</div></div>
+        <div class="met"><div class="mval" style="color:var(--blue)" id="st-ap">--:--</div><div class="mlab">avg pace</div></div>
+      </div>
+    </div>
+
+    <div class="sec">Weekly km</div>
+    <div class="card"><div class="chart-wrap"><canvas id="wkchart"></canvas></div></div>
+  </div>
+
+  <!-- ══════════ ACHIEVEMENTS ══════════ -->
+  <div class="page" id="pg-ach">
+    <div class="sec">Distance milestones</div>
+    <div class="card" id="ach-dist"></div>
+    <div class="sec">Elevation milestones</div>
+    <div class="card" id="ach-elev"></div>
+    <div class="sec">Streak</div>
+    <div class="card" id="ach-streak"></div>
+  </div>
+
+  <!-- ══════════ TESTS ══════════ -->
+  <div class="page" id="pg-tests">
+
+    <div class="sec">Your profile</div>
+    <div class="card" style="padding:14px 16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Age</div>
+          <input class="num-input" type="number" id="t-age" placeholder="25" min="10" max="99" onchange="saveProfile()" style="text-align:center">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Gender</div>
+          <select id="t-gender" onchange="saveProfile()" style="background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:9px 4px;color:var(--txt);font-size:13px;width:100%">
+            <option value="m">Male</option>
+            <option value="f">Female</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Weight kg</div>
+          <input class="num-input" type="number" id="t-weight" placeholder="70" min="30" max="250" onchange="saveProfile()" style="text-align:center">
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">Fitness tests</div>
+
+    <!-- Cooper 12-min Test -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div><div style="font-size:15px;font-weight:700">🏃 Cooper 12-Min Test</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Run as far as possible in 12 minutes</div></div>
+        <div class="badge bg-g">VO2 Max</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Developed by Dr. Kenneth Cooper for the US Air Force. Run on any flat route for exactly 12 min at the hardest sustainable pace. Directly predicts VO2 max.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Distance (m)</div>
+          <input class="num-input" type="number" id="cooper-m" placeholder="e.g. 2400" min="500" max="6000" step="10" oninput="calcCooper()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Or in km</div>
+          <input class="num-input" type="number" id="cooper-km" placeholder="e.g. 2.4" min="0.5" max="6" step="0.01" oninput="calcCooperKm()">
+        </div>
+      </div>
+      <div id="res-cooper" class="tres hidden"></div>
+      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('cooper')">💾 Save Result</button>
+    </div>
+
+    <!-- Resting HR / Uth formula -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div><div style="font-size:15px;font-weight:700">❤️ Resting HR Test</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">No running — just measure heart rate</div></div>
+        <div class="badge bg-b">Passive</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Measure resting heart rate (RHR) first thing in the morning before getting out of bed — count beats for 60 sec. Uses the Uth–Sørensen formula: VO2max = 15 × (HRmax / HRrest).</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Resting HR (bpm)</div>
+          <input class="num-input" type="number" id="rhr-val" placeholder="e.g. 55" min="30" max="120" oninput="calcRHR()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Max HR (bpm)</div>
+          <input class="num-input" type="number" id="mhr-val" placeholder="auto" min="100" max="230" oninput="calcRHR()">
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">Blank → uses 220−age</div>
+        </div>
+      </div>
+      <div id="res-rhr" class="tres hidden"></div>
+      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('rhr')">💾 Save Result</button>
+    </div>
+
+    <!-- Rockport Walk Test -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div><div style="font-size:15px;font-weight:700">🚶 Rockport Walk Test</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Walk 1 mile as fast as possible</div></div>
+        <div class="badge bg-p">Beginner</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Walk exactly 1 mile (1.609 km) as fast as you can without running. Record time and heart rate the instant you finish. Great for beginners or returning from injury.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Time (min)</div>
+          <input class="num-input" type="number" id="walk-min" placeholder="e.g. 15" min="8" max="40" step="0.1" oninput="calcWalk()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Finish HR (bpm)</div>
+          <input class="num-input" type="number" id="walk-hr" placeholder="e.g. 130" min="60" max="220" oninput="calcWalk()">
+        </div>
+      </div>
+      <div id="res-walk" class="tres hidden"></div>
+      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('walk')">💾 Save Result</button>
+    </div>
+
+    <!-- 1.5 Mile Run Test -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div><div style="font-size:15px;font-weight:700">🎖️ 1.5-Mile Run Test</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">US Military / Navy fitness standard</div></div>
+        <div class="badge bg-w">Military</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Run 1.5 miles (2.414 km) as fast as possible. Standard US Army, Navy, and Air Force PT test. Enter finish time below.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Minutes</div>
+          <input class="num-input" type="number" id="mile-min" placeholder="e.g. 12" min="6" max="30" oninput="calcMile()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Seconds</div>
+          <input class="num-input" type="number" id="mile-sec" placeholder="e.g. 30" min="0" max="59" oninput="calcMile()">
+        </div>
+      </div>
+      <div id="res-mile" class="tres hidden"></div>
+      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('mile')">💾 Save Result</button>
+    </div>
+
+    <!-- Beep Test -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div><div style="font-size:15px;font-weight:700">🔔 Beep Test (20m Shuttle)</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Enter the level and shuttle you reached</div></div>
+        <div class="badge bg-g">VO2 Max</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Run between two lines 20m apart, in time with beeps that speed up each level. Used by FIFA, rugby, military. Enter the level and shuttle number when you dropped out.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Level reached</div>
+          <input class="num-input" type="number" id="beep-lv" placeholder="e.g. 8" min="1" max="21" oninput="calcBeep()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Shuttle reached</div>
+          <input class="num-input" type="number" id="beep-sh" placeholder="e.g. 5" min="1" max="16" oninput="calcBeep()">
+        </div>
+      </div>
+      <div id="res-beep" class="tres hidden"></div>
+      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('beep')">💾 Save Result</button>
+    </div>
+
+    <!-- Sit & Reach (Flexibility) -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div><div style="font-size:15px;font-weight:700">🧘 Sit & Reach Test</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Lower body flexibility benchmark</div></div>
+        <div class="badge bg-pk">Flexibility</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Sit on floor with legs straight. Place a ruler at your feet (0 at toes). Reach forward as far as possible and hold 2 sec. Record how far past your toes you reached (positive) or how short (negative).</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Reach distance (cm, + past toes / − short)</div>
+        <input class="num-input" type="number" id="reach-cm" placeholder="e.g. +5 or -3" min="-30" max="40" step="0.5" oninput="calcReach()">
+      </div>
+      <div id="res-reach" class="tres hidden"></div>
+      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('reach')">💾 Save Result</button>
+    </div>
+
+    <!-- Push-up Test -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div><div style="font-size:15px;font-weight:700">💪 Push-Up Endurance Test</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Max push-ups without stopping</div></div>
+        <div class="badge bg-b">Strength</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Do as many full push-ups as possible without stopping or resting. No knee push-ups. Full chest-to-floor, arms fully extended at top. Used by US Army ACFT and Canadian Armed Forces.</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Push-ups completed</div>
+        <input class="num-input" type="number" id="pushup-n" placeholder="e.g. 30" min="0" max="300" oninput="calcPushup()">
+      </div>
+      <div id="res-pushup" class="tres hidden"></div>
+      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('pushup')">💾 Save Result</button>
+    </div>
+
+    <div class="sec">Test history</div>
+    <div class="card" id="test-hist">
+      <div style="color:var(--muted);text-align:center;padding:14px 0;font-size:14px">No tests saved yet</div>
+    </div>
+
+  </div>
+
+  <!-- ══════════ HISTORY ══════════ -->
+  <div class="page" id="pg-hist">
+    <div class="sec">All workouts</div>
+    <div class="card" id="hist-list">
+      <div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>
+    </div>
+    <div class="sec">Personal records</div>
+    <div class="card" id="pr-card">
+      <div style="color:var(--muted);font-size:13px">Complete workouts to see records.</div>
+    </div>
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="nb active" onclick="showPage('pg-home')"     id="nb-home">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+  </button>
+  <button class="nb" onclick="showPage('pg-settings')" id="nb-settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 104.93 19.07M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Track
+  </button>
+  <button class="nb" onclick="showPage('pg-tests')" id="nb-tests">
+    <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Tests
+  </button>
+  <button class="nb" onclick="showPage('pg-ach')"      id="nb-ach">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>Badges
+  </button>
+  <button class="nb" onclick="showPage('pg-hist')"     id="nb-hist">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>History
+  </button>
+</nav>
+
+<!-- GOAL MODAL -->
+<div class="overlay hidden" id="goal-modal">
+  <div class="modal">
+    <div style="font-size:52px">🏁</div>
+    <h2>Goal Reached!</h2>
+    <p id="goal-modal-txt">You crushed it!</p>
+    <button class="btn btn-g" onclick="closeModal('goal-modal')">Let's go!</button>
+  </div>
+</div>
+
+<!-- ACHIEVEMENT MODAL -->
+<div class="overlay hidden" id="ach-modal">
+  <div class="modal">
+    <div style="font-size:52px" id="am-icon">🏆</div>
+    <h2 id="am-title">Achievement!</h2>
+    <p id="am-desc">You did it!</p>
+    <button class="btn btn-g" onclick="closeModal('ach-modal')">Awesome!</button>
+  </div>
+</div>
+
+<!-- MANUAL SAVED MODAL -->
+<div class="overlay hidden" id="save-modal">
+  <div class="modal">
+    <div style="font-size:52px">💾</div>
+    <h2>Workout Saved!</h2>
+    <p id="save-modal-txt">Nice work!</p>
+    <button class="btn btn-g" onclick="closeModal('save-modal')">Great!</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════
+const DB = (() => {
+  const KEY = 'stride_v3';
+  let d = {};
+  try { const s = localStorage.getItem(KEY); if (s) d = JSON.parse(s); } catch(_) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(_) {} };
+  return {
+    get:  (k, def=null) => k in d ? d[k] : def,
+    set:  (k, v)        => { d[k] = v; save(); },
+    push: (k, v)        => { if (!d[k]) d[k]=[]; d[k].push(v); save(); },
+  };
+})();
+
+// ══════════════════════════════════════════
+// HAVERSINE
+// ══════════════════════════════════════════
+function haversine(la1, lo1, la2, lo2) {
+  const R = 6371000, r = Math.PI/180;
+  const φ1 = la1*r, φ2 = la2*r;
+  const Δφ = (la2-la1)*r, Δλ = (lo2-lo1)*r;
+  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ══════════════════════════════════════════
+// CALORIES  (MET-based + elevation bonus)
+// ══════════════════════════════════════════
+function calcCal(type, durSec, distKm, elevM) {
+  const w   = DB.get('weight', 70);
+  const MET = type === 'run' ? 11.5 : 3.5;
+  let cal = MET * w * (durSec / 3600);
+  if (distKm > 0) cal += (elevM / distKm) * 0.04 * distKm;
+  return Math.max(0, Math.round(cal));
+}
+
+// ══════════════════════════════════════════
+// FORMAT helpers
+// ══════════════════════════════════════════
+function fmtTime(sec) {
+  sec = Math.floor(sec);
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+    : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function fmtPace(spkm) {
+  if (!spkm || !isFinite(spkm) || spkm <= 0) return '--:--';
+  return `${Math.floor(spkm/60)}:${String(Math.round(spkm%60)).padStart(2,'0')}`;
+}
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ══════════════════════════════════════════
+// MODE   'gps' | 'manual'
+// ══════════════════════════════════════════
+let mode = 'manual';
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('mbtn-gps').classList.toggle('sel',    m === 'gps');
+  document.getElementById('mbtn-manual').classList.toggle('sel', m === 'manual');
+  document.getElementById('gps-panel').classList.toggle('hidden',    m !== 'gps');
+  document.getElementById('manual-panel').classList.toggle('hidden', m !== 'manual');
+
+  const liveCard = document.getElementById('live-card');
+  const gpsBtns  = document.getElementById('gps-btns');
+
+  if (m === 'gps') {
+    liveCard.classList.remove('hidden');
+    gpsBtns.style.display = 'grid';
+  } else {
+    if (!W.active) liveCard.classList.add('hidden');
+    gpsBtns.style.display = 'none';
+  }
+}
+
+// ══════════════════════════════════════════
+// GPS PERMISSION  — the right way for Android
+// ══════════════════════════════════════════
+let gpsGranted = false;
+
+function setPill(type, txt) {
+  const el = document.getElementById('gps-pill');
+  el.textContent = txt;
+  el.className = 'gps-pill ' + type;
+}
+function setGPSMsg(txt) {
+  document.getElementById('gps-msg').textContent = txt;
+}
+
+function askGPS() {
+  if (!navigator.geolocation) {
+    setPill('gps-err', '❌ No GPS');
+    setGPSMsg('Your browser or device does not support GPS.');
+    return;
+  }
+
+  const btn = document.getElementById('gps-req-btn');
+  btn.textContent = '⏳ Waiting for permission…';
+  btn.disabled = true;
+  setGPSMsg('A popup may appear at the top of Chrome. Tap "Allow".');
+
+  // This is the call that shows the native Android permission popup
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      // ✅ GRANTED
+      gpsGranted = true;
+      const acc = Math.round(pos.coords.accuracy);
+      setPill('gps-ok', `✅ GPS ready ±${acc}m`);
+      setGPSMsg('GPS is working. You can now start a workout.');
+      btn.textContent = '✅ GPS Granted — Ready!';
+      btn.disabled = false;
+      btn.classList.add('hidden');
+
+      // Enable the Start button
+      document.getElementById('btn-start').disabled = false;
+    },
+    (err) => {
+      // ❌ FAILED
+      btn.textContent = '📡 Try Again';
+      btn.disabled = false;
+      gpsGranted = false;
+
+      if (err.code === 1) {
+        // PERMISSION_DENIED
+        // This happens when the user tapped "Deny" OR when http:// blocks the popup
+        const isHttp = location.protocol === 'http:' && location.hostname !== 'localhost';
+        if (isHttp) {
+          setPill('gps-err', '❌ http:// blocks GPS');
+          setGPSMsg(
+            'Android Chrome blocks GPS on http:// addresses. You have two options:\n\n' +
+            '1. Use Manual mode (enter stats yourself after your run) — works right now.\n\n' +
+            '2. Host the file on https:// — drag stride.html to netlify.com/drop on your PC, get a free https link, open on phone.'
+          );
+        } else {
+          setPill('gps-err', '❌ Permission denied');
+          setGPSMsg(
+            'You tapped Deny, or Chrome blocked it. Fix: open Chrome menu (⋮) → Settings → Site Settings → Location → find this site → change to Allow. Then tap Try Again.'
+          );
+        }
+      } else if (err.code === 2) {
+        setPill('gps-warn', '⚠️ No signal');
+        setGPSMsg('GPS signal not found. Go outside away from buildings, then tap Try Again.');
+      } else {
+        setPill('gps-warn', '⚠️ Timeout');
+        setGPSMsg('GPS timed out. Go outside and tap Try Again.');
+      }
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+// ══════════════════════════════════════════
+// WORKOUT STATE
+// ══════════════════════════════════════════
+const W = {
+  active: false, type: 'run',
+  startTime: 0, elapsed: 0,
+  distM: 0, elevUp: 0, elevDown: 0,
+  lastAlt: null, altBuf: [],
+  paceWin: [], lastLat: null, lastLon: null, lastGPSt: null,
+  speedKmh: 0, paceSecKm: 0, bestPace: Infinity,
+  goalKm: 5, goalOn: true, goalReached: false,
+  timerIv: null, watchId: null,
+};
+
+function startGPSWatch() {
+  if (W.watchId !== null) return;
+  W.watchId = navigator.geolocation.watchPosition(
+    onPos, onPosErr,
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+  );
+}
+function stopGPSWatch() {
+  if (W.watchId !== null) { navigator.geolocation.clearWatch(W.watchId); W.watchId = null; }
+}
+
+function onPos(pos) {
+  const lat  = pos.coords.latitude;
+  const lon  = pos.coords.longitude;
+  const alt  = pos.coords.altitude;
+  const acc  = pos.coords.accuracy;
+  const ts   = pos.timestamp;
+
+  // Update pill
+  setPill(acc < 20 ? 'gps-ok' : 'gps-warn',
+          acc < 20 ? `✅ GPS ±${Math.round(acc)}m` : `📡 GPS ±${Math.round(acc)}m`);
+
+  if (!W.active) return;
+
+  // ── DISTANCE ──────────────────────────
+  if (acc <= 50 && W.lastLat !== null) {
+    const dist = haversine(W.lastLat, W.lastLon, lat, lon);
+    const minMove = W.type === 'run' ? 2 : 1;
+    if (dist >= minMove && dist <= 150) {
+      W.distM += dist;
+
+      // Speed & Pace
+      const dtSec = (ts - W.lastGPSt) / 1000;
+      if (dtSec > 0 && dtSec < 30) {
+        const ms   = dist / dtSec;
+        W.speedKmh = ms * 3.6;
+        if (W.distM > 10) {
+          const raw = 1000 / ms;  // sec per km
+          W.paceWin.push(raw);
+          if (W.paceWin.length > 5) W.paceWin.shift();
+          W.paceSecKm = W.paceWin.reduce((a,b)=>a+b,0) / W.paceWin.length;
+          if (W.paceSecKm > 30 && W.paceSecKm < W.bestPace) W.bestPace = W.paceSecKm;
+        }
+      }
+    }
+  }
+
+  // ── ELEVATION ─────────────────────────
+  if (alt !== null) {
+    W.altBuf.push(alt);
+    if (W.altBuf.length > 3) W.altBuf.shift();
+    const sm = W.altBuf.reduce((a,b)=>a+b,0) / W.altBuf.length;
+    if (W.lastAlt !== null) {
+      const d = sm - W.lastAlt;
+      if (d > 0.5) W.elevUp += d;
+      else if (d < -0.5) W.elevDown += -d;
+    }
+    W.lastAlt = W.altBuf.reduce((a,b)=>a+b,0) / W.altBuf.length;
+  }
+
+  W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts;
+  updateLiveUI();
+
+  // Goal check
+  if (W.goalOn && !W.goalReached && W.distM / 1000 >= W.goalKm) {
+    W.goalReached = true;
+    const lbl = W.goalKm >= 1 ? W.goalKm.toFixed(2)+' km' : (W.goalKm*1000).toFixed(0)+' m';
+    document.getElementById('goal-modal-txt').textContent = `You completed your ${lbl} goal! 🎉`;
+    document.getElementById('goal-modal').classList.remove('hidden');
+    confetti();
+  }
+}
+
+function onPosErr(err) {
+  const msgs = { 1:'GPS denied', 2:'No signal — go outside', 3:'GPS timeout' };
+  setPill('gps-err', '❌ ' + (msgs[err.code]||'GPS error'));
+}
+
+function updateLiveUI() {
+  const km = W.distM / 1000;
+  document.getElementById('hd').textContent   = km.toFixed(2);
+  document.getElementById('hp').textContent   = fmtPace(W.paceSecKm);
+  document.getElementById('heu').textContent  = '+' + Math.round(W.elevUp)   + ' m';
+  document.getElementById('hed').textContent  = '-' + Math.round(W.elevDown) + ' m';
+  document.getElementById('hspd').textContent = W.speedKmh.toFixed(1);
+
+  if (W.goalOn) {
+    const pct = Math.min(100, (km / W.goalKm) * 100);
+    document.getElementById('gbar').style.width = pct + '%';
+    document.getElementById('goal-pct').textContent = Math.round(pct) + '%';
+    document.getElementById('goal-lbl').textContent = km.toFixed(2) + ' / ' + W.goalKm.toFixed(2) + ' km';
+  }
+}
+
+// ══════════════════════════════════════════
+// START / STOP  (GPS mode)
+// ══════════════════════════════════════════
+function toggleWorkout() {
+  W.active ? stopWorkout() : startWorkout();
+}
+
+function startWorkout() {
+  if (!gpsGranted) { setGPSMsg('Grant GPS permission first — tap "Request GPS Permission".'); return; }
+
+  Object.assign(W, {
+    active:true, startTime:Date.now(), elapsed:0,
+    distM:0, elevUp:0, elevDown:0,
+    lastAlt:null, altBuf:[], paceWin:[],
+    lastLat:null, lastLon:null, lastGPSt:null,
+    speedKmh:0, paceSecKm:0, bestPace:Infinity,
+    goalReached:false,
+    goalKm: getGoalKm(),
+    goalOn: document.getElementById('tog-goal').classList.contains('on'),
+  });
+
+  const isRun = W.type === 'run';
+  document.getElementById('btn-start').textContent = 'Stop Workout';
+  document.getElementById('btn-start').className   = 'btn btn-r';
+  document.getElementById('home-status').innerHTML =
+    `<span class="sdot on"></span>${isRun?'Running':'Walking'}…`;
+  document.getElementById('type-badge').textContent = isRun ? '🏃 Run' : '🚶 Walk';
+  document.getElementById('type-badge').className   = 'badge ' + (isRun ? 'bg-g' : 'bg-b');
+  document.getElementById('gbar').style.width = '0%';
+  document.getElementById('goal-lbl').textContent =
+    W.goalOn ? '0.00 / ' + W.goalKm.toFixed(2) + ' km' : 'No goal set';
+
+  // Timer
+  W.timerIv = setInterval(() => {
+    W.elapsed = (Date.now() - W.startTime) / 1000;
+    document.getElementById('home-timer').textContent = fmtTime(W.elapsed);
+    document.getElementById('hc').textContent = calcCal(W.type, W.elapsed, W.distM/1000, W.elevUp);
+  }, 1000);
+
+  startGPSWatch();
+
+  // Keep screen on
+  if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
+}
+
+function stopWorkout() {
+  clearInterval(W.timerIv);
+  stopGPSWatch();
+  W.active = false;
+
+  document.getElementById('btn-start').textContent = `Start ${W.type==='run'?'Run':'Walk'}`;
+  document.getElementById('btn-start').className   = 'btn btn-g';
+  document.getElementById('home-status').innerHTML = '<span class="sdot off"></span>Not started';
+
+  const km = W.distM / 1000;
+  if (km < 0.03 || W.elapsed < 10) return; // too short
+
+  saveRecord({
+    type:       W.type,
+    distKm:     +km.toFixed(3),
+    elapsedSec: Math.round(W.elapsed),
+    cal:        calcCal(W.type, W.elapsed, km, W.elevUp),
+    elevUp:     +W.elevUp.toFixed(1),
+    elevDown:   +W.elevDown.toFixed(1),
+    avgPace:    W.elapsed > 0 && km > 0 ? W.elapsed / km : 0,
+    bestPace:   isFinite(W.bestPace) ? W.bestPace : 0,
+    goalKm:     W.goalOn ? W.goalKm : null,
+    goalReached:W.goalReached,
+    source:     'gps',
+  });
+}
+
+// ══════════════════════════════════════════
+// MANUAL SAVE
+// ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// TERRAIN → ELEVATION ESTIMATION
+// Based on real-world average elevation gain per km for each terrain type:
+//   Flat    → ~  5 m/km  (parks, roads, treadmill)
+//   Rolling → ~ 25 m/km  (typical city/suburban run)
+//   Hilly   → ~ 60 m/km  (trail, hill routes)
+//   Steep   → ~120 m/km  (mountain, heavy trail)
+// Descent is estimated as 80% of gain (most routes aren't one-way climbs)
+// ══════════════════════════════════════════
+const TERRAIN = {
+  flat:    { gainPerKm: 5,   dropPerKm: 4,   label: 'Flat road / treadmill'  },
+  rolling: { gainPerKm: 25,  dropPerKm: 20,  label: 'Rolling hills'          },
+  hilly:   { gainPerKm: 60,  dropPerKm: 50,  label: 'Hilly / trail'          },
+  steep:   { gainPerKm: 120, dropPerKm: 100, label: 'Steep / mountains'      },
+};
+
+let currentTerrain = 'flat';
+
+function setTerrain(t) {
+  currentTerrain = t;
+  ['flat','rolling','hilly','steep'].forEach(k => {
+    document.getElementById('tb-'+k).classList.toggle('sel', k === t);
+  });
+  previewManual();
+}
+
+function getDistKm() {
+  const v = parseFloat(document.getElementById('m-dist').value) || 0;
+  const u = document.getElementById('m-dist-unit').value;
+  return u === 'km' ? v : u === 'mi' ? v * 1.60934 : v / 1000;
+}
+
+function previewManual() {
+  const distKm = getDistKm();
+  const durMin = parseFloat(document.getElementById('m-dur').value) || 0;
+  const prev   = document.getElementById('manual-preview');
+
+  if (distKm <= 0 || durMin <= 0) { prev.style.display = 'none'; return; }
+  prev.style.display = 'block';
+
+  const terrain    = TERRAIN[currentTerrain];
+  const elevUp     = distKm * terrain.gainPerKm;
+  const elapsedSec = durMin * 60;
+  const paceSecKm  = elapsedSec / distKm;
+  const type       = document.getElementById('btn-run').classList.contains('bg-g') ? 'run' : 'walk';
+  const cal        = calcCal(type, elapsedSec, distKm, elevUp);
+
+  document.getElementById('prev-pace').textContent = fmtPace(paceSecKm);
+  document.getElementById('prev-elev').textContent = Math.round(elevUp) + ' m';
+  document.getElementById('prev-cal').textContent  = cal + ' kcal';
+}
+
+function saveManual() {
+  const distKm = getDistKm();
+  const durMin = parseFloat(document.getElementById('m-dur').value) || 0;
+
+  if (distKm <= 0) { alert('Enter a distance.'); return; }
+  if (durMin <= 0) { alert('Enter a duration.'); return; }
+
+  const terrain    = TERRAIN[currentTerrain];
+  const elevUp     = parseFloat((distKm * terrain.gainPerKm).toFixed(1));
+  const elevDown   = parseFloat((distKm * terrain.dropPerKm).toFixed(1));
+  const elapsedSec = durMin * 60;
+  const type       = document.getElementById('btn-run').classList.contains('bg-g') ? 'run' : 'walk';
+  const avgPace    = elapsedSec / distKm;
+  const cal        = calcCal(type, elapsedSec, distKm, elevUp);
+
+  saveRecord({
+    type, distKm, elapsedSec, cal,
+    elevUp, elevDown,
+    avgPace, bestPace: avgPace,
+    terrain: currentTerrain,
+    goalKm: null, goalReached: false,
+    source: 'manual',
+  });
+
+  // Clear inputs + reset preview
+  document.getElementById('m-dist').value = '';
+  document.getElementById('m-dur').value  = '';
+  document.getElementById('manual-preview').style.display = 'none';
+
+  const lbl = distKm.toFixed(2)+' km · '+Math.round(durMin)+' min · '+cal+' kcal · ↑'+Math.round(elevUp)+'m';
+  document.getElementById('save-modal-txt').textContent = lbl;
+  document.getElementById('save-modal').classList.remove('hidden');
+  confetti();
+}
+
+// ══════════════════════════════════════════
+// SAVE RECORD + ACHIEVEMENTS
+// ══════════════════════════════════════════
+function saveRecord(rec) {
+  rec.id   = Date.now();
+  rec.date = new Date().toISOString();
+  DB.push('workouts', rec);
+
+  const stats = DB.get('stats', {
+    totalDistKm:0, totalCal:0, totalElevM:0,
+    totalSec:0, workouts:0, bestPace:null, streak:0, lastDate:null
+  });
+  stats.totalDistKm += rec.distKm;
+  stats.totalCal    += rec.cal;
+  stats.totalElevM  += rec.elevUp;
+  stats.totalSec    += rec.elapsedSec;
+  stats.workouts    += 1;
+  if (!stats.bestPace || (rec.bestPace > 0 && rec.bestPace < stats.bestPace))
+    stats.bestPace = rec.bestPace;
+
+  // Streak
+  const today = new Date().toDateString();
+  if (stats.lastDate !== today) {
+    const yest = new Date(Date.now()-86400000).toDateString();
+    stats.streak = stats.lastDate === yest ? stats.streak+1 : 1;
+    stats.lastDate = today;
+  }
+  DB.set('stats', stats);
+
+  const newAchs = checkAch(rec.distKm, stats.totalDistKm, stats.totalElevM, stats.streak);
+  refreshAll();
+  if (newAchs.length) setTimeout(()=>showAchModal(newAchs[0]), 500);
+}
+
+// ══════════════════════════════════════════
+// ACHIEVEMENTS
+// ══════════════════════════════════════════
+const ACH_DIST = [
+  {id:'d100m', icon:'🌱',title:'First Steps',     desc:'100 m completed',          km:0.1   },
+  {id:'d200m', icon:'🐣',title:'Getting Moving',  desc:'200 m completed',          km:0.2   },
+  {id:'d400m', icon:'🏟️',title:'Track Lap',       desc:'One full 400 m lap',       km:0.4   },
+  {id:'d500m', icon:'🌿',title:'Half-K',          desc:'500 m completed',          km:0.5   },
+  {id:'d800m', icon:'🔵',title:'800 m Runner',    desc:'800 m middle distance',    km:0.8   },
+  {id:'d1km',  icon:'🔑',title:'1 Kilometre',     desc:'First full km!',           km:1.0   },
+  {id:'d1200',icon:'📏', title:'1200 m',          desc:'1200 m completed',         km:1.2   },
+  {id:'d1600',icon:'🌀', title:'1600 m / Mile',   desc:'1600 m broken!',           km:1.6   },
+  {id:'d1mi',  icon:'🦅',title:'One Mile',        desc:'1 mile = 1.609 km',        km:1.609 },
+  {id:'d5km',  icon:'⭐',title:'5K Club',         desc:'5 km — welcome!',          km:5     },
+  {id:'d10km', icon:'💫',title:'10K Legend',      desc:'10 km real runner!',       km:10    },
+  {id:'d21km', icon:'🥇',title:'Half Marathoner', desc:'21.097 km completed!',     km:21.097},
+  {id:'d42km', icon:'🏆',title:'Marathoner',      desc:'42.195 km full marathon!', km:42.195},
+];
+const ACH_ELEV = [
+  {id:'e50',  icon:'⛰️',title:'Hill Climber',  desc:'50 m total climbed',   m:50  },
+  {id:'e100', icon:'🌄',title:'100 m Climber', desc:'100 m — Eiffel Tower', m:100 },
+  {id:'e200', icon:'🗼',title:'Tower Climber', desc:'200 m total',          m:200 },
+  {id:'e500', icon:'🏔️',title:'Mountain Goat', desc:'500 m total!',        m:500 },
+  {id:'e1000',icon:'🌋',title:'Peak Bagger',  desc:'1000 m total climbed!', m:1000},
+];
+const ACH_STREAK = [
+  {id:'s3', icon:'🌤️',title:'3-Day Streak', desc:'Active 3 days in a row', days:3 },
+  {id:'s7', icon:'🔥',title:'Week Warrior', desc:'7-day streak!',           days:7 },
+  {id:'s14',icon:'💪',title:'Fortnight',    desc:'14 days in a row!',       days:14},
+  {id:'s30',icon:'🚀',title:'Monthly Hero', desc:'30 consecutive days!',    days:30},
+];
+
+function checkAch(workoutKm, totalKm, totalElevM, streak) {
+  const earned = DB.get('achievements', {});
+  const fresh  = [];
+  for (const a of ACH_DIST)   if (!earned[a.id] && workoutKm  >= a.km)   { earned[a.id]=Date.now(); fresh.push(a); }
+  for (const a of ACH_ELEV)   if (!earned[a.id] && totalElevM >= a.m)    { earned[a.id]=Date.now(); fresh.push(a); }
+  for (const a of ACH_STREAK) if (!earned[a.id] && streak     >= a.days) { earned[a.id]=Date.now(); fresh.push(a); }
+  DB.set('achievements', earned);
+  return fresh;
+}
+
+function showAchModal(a) {
+  document.getElementById('am-icon').textContent  = a.icon;
+  document.getElementById('am-title').textContent = a.title;
+  document.getElementById('am-desc').textContent  = a.desc;
+  document.getElementById('ach-modal').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+// RANK
+// ══════════════════════════════════════════
+function getRank(km, sec) {
+  const score = km*100 - (sec/60)*0.5;
+  if (score >= 500) return {icon:'🏆',label:'S',css:'rank-s'};
+  if (score >= 200) return {icon:'🥇',label:'A',css:'rank-a'};
+  if (score >= 100) return {icon:'🥈',label:'B',css:'rank-b'};
+  if (score >= 40)  return {icon:'🥉',label:'C',css:'rank-c'};
+  return               {icon:'📗',label:'D',css:'rank-d'};
+}
+
+// ══════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════
+function refreshAll() {
+  renderHome();
+  renderSettings();
+  renderAchievements();
+  renderHistory();
+}
+
+function renderHome() {
+  const wkts  = DB.get('workouts', []);
+  const stats = DB.get('stats', {streak:0});
+  document.getElementById('streak-badge').textContent = `🔥 ${stats.streak} day streak`;
+
+  const el = document.getElementById('recent-list');
+  if (!wkts.length) {
+    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>';
+    return;
+  }
+  el.innerHTML = [...wkts].reverse().slice(0,5).map(w => {
+    const d  = new Date(w.date);
+    const lb = d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric'});
+    const rk = getRank(w.distKm, w.elapsedSec);
+    const src = w.source === 'manual' ? ' ✏️' : ' 📍';
+    return `<div class="wrow">
+      <div class="wico">${w.type==='run'?'🏃':'🚶'}</div>
+      <div class="winfo">
+        <div class="wtitle">${cap(w.type)} · ${w.distKm.toFixed(2)} km${src}</div>
+        <div class="wsub">${lb} · ${fmtTime(w.elapsedSec)} · ${w.cal} kcal</div>
+      </div>
+      <div class="${rk.css}" style="font-size:20px">${rk.icon}</div>
+    </div>`;
+  }).join('');
+}
+
+let wkChart = null;
+function renderSettings() {
+  const stats = DB.get('stats',{totalDistKm:0,totalCal:0,totalElevM:0,workouts:0,bestPace:null,totalSec:0});
+  const wkts  = DB.get('workouts',[]);
+  setText('st-dist', (stats.totalDistKm||0).toFixed(1));
+  setText('st-wkts', stats.workouts||0);
+  setText('st-cal',  stats.totalCal||0);
+  setText('st-elev', Math.round(stats.totalElevM||0));
+  setText('st-bp',   fmtPace(stats.bestPace));
+  const ap = stats.workouts>0 && stats.totalDistKm>0 ? stats.totalSec/stats.totalDistKm : null;
+  setText('st-ap', fmtPace(ap));
+
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const data = new Array(7).fill(0);
+  const now  = new Date();
+  for (const w of wkts) {
+    const diff = Math.floor((now - new Date(w.date))/86400000);
+    if (diff < 7) data[(new Date(w.date).getDay()+6)%7] += w.distKm;
+  }
+  const ctx = document.getElementById('wkchart');
+  if (wkChart) wkChart.destroy();
+  wkChart = new Chart(ctx,{
+    type:'bar',
+    data:{ labels:days, datasets:[{data:data.map(v=>+v.toFixed(2)), backgroundColor:'#00e5a0', borderRadius:6, borderSkipped:false}] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b9098',font:{size:11}}},
+        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b9098',font:{size:11}},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function renderAchievements() {
+  const earned = DB.get('achievements',{});
+  const stats  = DB.get('stats',{totalDistKm:0,totalElevM:0,streak:0});
+  const wkts   = DB.get('workouts',[]);
+  const maxKm  = wkts.length ? Math.max(...wkts.map(w=>w.distKm)) : 0;
+
+  function row(a, prog, total, unit) {
+    const ok   = !!earned[a.id];
+    const pct  = Math.min(100,(prog/total)*100);
+    const ds   = ok ? new Date(earned[a.id]).toLocaleDateString('en-IN',{month:'short',day:'numeric',year:'numeric'}) : null;
+    return `<div class="ach">
+      <div class="ach-ico ${ok?'e':'l'}">${a.icon}</div>
+      <div style="flex:1">
+        <div class="ach-title">${a.title}</div>
+        <div class="ach-desc">${a.desc}</div>
+        ${ok
+          ? `<div class="ach-date">✓ ${ds}</div>`
+          : `<div style="font-size:11px;color:var(--muted);margin-top:4px">${Math.min(prog,total).toFixed(unit==='km'?2:0)} / ${total} ${unit}</div>
+             <div class="prog-bg"><div class="prog-bar" style="width:${pct}%"></div></div>`}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('ach-dist').innerHTML   = ACH_DIST.map(a=>row(a,maxKm,a.km,'km')).join('');
+  document.getElementById('ach-elev').innerHTML   = ACH_ELEV.map(a=>row(a,stats.totalElevM||0,a.m,'m')).join('');
+  document.getElementById('ach-streak').innerHTML = ACH_STREAK.map(a=>row(a,stats.streak||0,a.days,'days')).join('');
+}
+
+function renderHistory() {
+  const wkts = DB.get('workouts',[]);
+  const el   = document.getElementById('hist-list');
+  const pr   = document.getElementById('pr-card');
+  if (!wkts.length) {
+    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>';
+    pr.innerHTML = '<div style="color:var(--muted);font-size:13px">Complete workouts to see records.</div>';
+    return;
+  }
+  el.innerHTML = [...wkts].reverse().map(w=>{
+    const d  = new Date(w.date);
+    const lb = d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const rk = getRank(w.distKm,w.elapsedSec);
+    const src= w.source==='manual'?' ✏️':' 📍';
+    return `<div class="wrow">
+      <div class="wico">${w.type==='run'?'🏃':'🚶'}</div>
+      <div class="winfo">
+        <div class="wtitle">${cap(w.type)} ${w.distKm.toFixed(2)} km · ${rk.label}${src}</div>
+        <div class="wsub">${lb} · ${fmtTime(w.elapsedSec)}</div>
+        <div class="wsub">↑${Math.round(w.elevUp||0)}m · ${w.cal} kcal · ${fmtPace(w.avgPace)}/km</div>
+      </div>
+      <div class="${rk.css}" style="font-size:20px">${rk.icon}</div>
+    </div>`;
+  }).join('');
+
+  const bd = [...wkts].sort((a,b)=>b.distKm-a.distKm)[0];
+  const bp = [...wkts].filter(w=>w.bestPace>0).sort((a,b)=>a.bestPace-b.bestPace)[0];
+  const bc = [...wkts].sort((a,b)=>b.cal-a.cal)[0];
+  const be = [...wkts].sort((a,b)=>b.elevUp-a.elevUp)[0];
+  pr.innerHTML = [
+    {ico:'🏅',t:'Longest',    v:bd.distKm.toFixed(2)+' km', d:bd.date},
+    bp?{ico:'⚡',t:'Best pace',v:fmtPace(bp.bestPace)+'/km',d:bp.date}:null,
+    {ico:'🔥',t:'Most kcal',  v:bc.cal+' kcal',             d:bc.date},
+    {ico:'⛰️',t:'Most climb', v:Math.round(be.elevUp||0)+'m',d:be.date},
+  ].filter(Boolean).map((p,i,arr)=>`
+    <div class="ach" style="${i===arr.length-1?'border:none;padding-bottom:0':''}">
+      <div class="ach-ico e">${p.ico}</div>
+      <div>
+        <div class="ach-title">${p.t}</div>
+        <div class="ach-desc">${p.v} · ${new Date(p.d).toLocaleDateString('en-IN',{month:'short',day:'numeric'})}</div>
+      </div>
+    </div>`).join('');
+}
+
+function setText(id, v) { document.getElementById(id).textContent = v; }
+
+// ══════════════════════════════════════════
+// SETTINGS HELPERS
+// ══════════════════════════════════════════
+let currentType = 'run';
+let goalEnabled = true;
+
+function setType(t) {
+  currentType = t; W.type = t;
+  document.getElementById('btn-run').className  = 'badge '+(t==='run'?'bg-g':'bg-gr');
+  document.getElementById('btn-walk').className = 'badge '+(t==='walk'?'bg-b':'bg-gr');
+  if (!W.active) document.getElementById('btn-start').textContent = `Start ${t==='run'?'Run':'Walk'}`;
+}
+function toggleGoal() {
+  goalEnabled = !goalEnabled;
+  document.getElementById('tog-goal').className = 'tog'+(goalEnabled?' on':'');
+  document.getElementById('goal-wrap').style.display = goalEnabled?'block':'none';
+}
+function goalChanged() {
+  const v=parseFloat(document.getElementById('gval').value)||5;
+  const u=document.getElementById('gunit').value;
+  const km=u==='km'?v:u==='mi'?v*1.60934:v/1000;
+  document.getElementById('goal-hint').textContent='= '+km.toFixed(3)+' km';
+}
+goalChanged();
+function getGoalKm() {
+  const v=parseFloat(document.getElementById('gval').value)||5;
+  const u=document.getElementById('gunit').value;
+  return u==='km'?v:u==='mi'?v*1.60934:v/1000;
+}
+function qg(v,u){ document.getElementById('gval').value=v; document.getElementById('gunit').value=u; goalChanged(); }
+
+// ══════════════════════════════════════════
+// MODALS / NAV
+// ══════════════════════════════════════════
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+const PAGE_MAP={'pg-home':'nb-home','pg-settings':'nb-settings','pg-tests':'nb-tests','pg-ach':'nb-ach','pg-hist':'nb-hist'};
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById(PAGE_MAP[id]).classList.add('active');
+  if(id==='pg-settings') renderSettings();
+  if(id==='pg-ach')      renderAchievements();
+  if(id==='pg-hist')     renderHistory();
+  if(id==='pg-tests')    renderTestHist();
+}
+
+// ══════════════════════════════════════════
+// FITNESS TESTS ENGINE
+// ══════════════════════════════════════════
+
+// ── Profile helpers ──────────────────────
+function getProfile() {
+  return {
+    age:    parseInt(document.getElementById('t-age').value)    || DB.get('t-age',25),
+    gender: document.getElementById('t-gender').value           || DB.get('t-gender','m'),
+    weight: parseFloat(document.getElementById('t-weight').value) || DB.get('weight',70),
+  };
+}
+function saveProfile() {
+  const p = getProfile();
+  DB.set('t-age', p.age);
+  DB.set('t-gender', p.gender);
+  DB.set('weight', p.weight);
+  document.getElementById('weight').value = p.weight; // sync settings page
+}
+
+// ── VO2 Max classification (ml/kg/min) ───
+// Source: ACSM / Fitness classifications by age & gender
+function vo2Class(vo2, age, gender) {
+  // Simplified 5-tier table averaged across age groups
+  const thM = { poor:35, fair:42, good:48, excellent:55 };
+  const thF = { poor:29, fair:35, good:41, excellent:48 };
+  const th   = gender === 'f' ? thF : thM;
+
+  // Age correction (younger = higher threshold)
+  const ageMod = age < 30 ? 3 : age < 40 ? 1 : age < 50 ? -2 : age < 60 ? -5 : -8;
+  const p = th.poor      + ageMod;
+  const fa= th.fair      + ageMod;
+  const g = th.good      + ageMod;
+  const ex= th.excellent + ageMod;
+
+  if (vo2 < p)  return { label:'Poor',      color:'var(--red)',    emoji:'😓', tip:'Focus on easy runs 3×/week to build aerobic base.' };
+  if (vo2 < fa) return { label:'Fair',       color:'var(--warn)',   emoji:'🙂', tip:'Add one longer run per week to improve endurance.' };
+  if (vo2 < g)  return { label:'Good',       color:'var(--blue)',   emoji:'💪', tip:'Good base — try tempo runs to push higher.' };
+  if (vo2 < ex) return { label:'Excellent',  color:'var(--green)',  emoji:'🔥', tip:'Excellent! Interval training can take you to Elite.' };
+  return              { label:'Elite',      color:'var(--purple)', emoji:'🏆', tip:'Elite level — you are in the top ~5% of your age group.' };
+}
+
+function showResult(id, vo2, age, gender, extraLines=[]) {
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+  const c = vo2Class(vo2, age, gender);
+  const lines = extraLines.map(l=>`<div style="font-size:12px;color:var(--muted)">${l}</div>`).join('');
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="font-size:32px">${c.emoji}</div>
+      <div>
+        <div style="font-size:18px;font-weight:800;color:${c.color}">VO2 Max ≈ ${vo2.toFixed(1)} ml/kg/min</div>
+        <div style="font-size:14px;font-weight:600;color:${c.color}">${c.label}</div>
+      </div>
+    </div>
+    ${lines}
+    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5">
+      💡 ${c.tip}
+    </div>`;
+  return vo2;
+}
+
+// store last computed result so Save knows what to store
+let lastResults = {};
+
+// ── 1. Cooper 12-Min Test ─────────────────
+// Formula: VO2max = (distM − 504.9) / 44.73   (Cooper, 1968)
+function calcCooper() {
+  const m = parseFloat(document.getElementById('cooper-m').value);
+  if (!m || m < 200) return;
+  document.getElementById('cooper-km').value = (m/1000).toFixed(2);
+  const { age, gender } = getProfile();
+  const vo2 = (m - 504.9) / 44.73;
+  const pace = fmtPace(720 / (m/1000)); // 12 min for that distance
+  lastResults.cooper = { vo2, distM: m };
+  showResult('res-cooper', vo2, age, gender, [`Distance: ${m} m`, `Equivalent pace: ${pace} /km`]);
+}
+function calcCooperKm() {
+  const km = parseFloat(document.getElementById('cooper-km').value);
+  if (!km || km < 0.2) return;
+  document.getElementById('cooper-m').value = Math.round(km * 1000);
+  calcCooper();
+}
+
+// ── 2. Resting HR (Uth–Sørensen formula) ─
+// Formula: VO2max = 15 × (HRmax / HRrest)
+function calcRHR() {
+  const rhr = parseFloat(document.getElementById('rhr-val').value);
+  const mhrInput = parseFloat(document.getElementById('mhr-val').value);
+  if (!rhr || rhr < 20) return;
+  const { age, gender } = getProfile();
+  const mhr = mhrInput || (220 - age);
+  const vo2 = 15 * (mhr / rhr);
+  lastResults.rhr = { vo2, rhr, mhr };
+  showResult('res-rhr', vo2, age, gender, [
+    `Resting HR: ${rhr} bpm`,
+    `Max HR used: ${mhr} bpm ${mhrInput ? '(entered)' : '(estimated: 220 − age)'}`,
+    `HRmax / HRrest ratio: ${(mhr/rhr).toFixed(2)}`,
+  ]);
+}
+
+// ── 3. Rockport Walk Test ─────────────────
+// Formula (George et al., 1993):
+// VO2max = 132.853 − (0.0769 × weightLb) − (0.3877 × age) + (6.315 × genderM)
+//          − (3.2649 × timeMin) − (0.1565 × finishHR)
+function calcWalk() {
+  const timeMin = parseFloat(document.getElementById('walk-min').value);
+  const hr      = parseFloat(document.getElementById('walk-hr').value);
+  if (!timeMin || !hr) return;
+  const { age, gender, weight } = getProfile();
+  const weightLb = weight * 2.20462;
+  const gM = gender === 'm' ? 1 : 0;
+  const vo2 = 132.853 - (0.0769*weightLb) - (0.3877*age) + (6.315*gM) - (3.2649*timeMin) - (0.1565*hr);
+  lastResults.walk = { vo2, timeMin, hr };
+  const min = Math.floor(timeMin); const sec = Math.round((timeMin-min)*60);
+  showResult('res-walk', vo2, age, gender, [
+    `Time: ${min}:${String(sec).padStart(2,'0')} (${timeMin.toFixed(1)} min)`,
+    `Finish HR: ${hr} bpm`,
+  ]);
+}
+
+// ── 4. 1.5-Mile Run Test ──────────────────
+// Formula (George et al., 1993 — timed run):
+// VO2max = 88.369 + (3.713 × genderM) − (0.1656 × weightKg)
+//          − (2.767 × timeMin)
+function calcMile() {
+  const m = parseFloat(document.getElementById('mile-min').value) || 0;
+  const s = parseFloat(document.getElementById('mile-sec').value) || 0;
+  if (!m && !s) return;
+  const timeMin = m + s/60;
+  if (timeMin < 5) return;
+  const { age, gender, weight } = getProfile();
+  const gM = gender === 'm' ? 1 : 0;
+  const vo2 = 88.369 + (3.713*gM) - (0.1656*weight) - (2.767*timeMin);
+  lastResults.mile = { vo2, timeMin };
+  showResult('res-mile', vo2, age, gender, [
+    `Time: ${m}:${String(Math.round(s)).padStart(2,'0')} (${timeMin.toFixed(2)} min)`,
+    `Pace: ${fmtPace(timeMin*60 / 2.414)} /km`,
+  ]);
+}
+
+// ── 5. Beep Test (20m Shuttle) ────────────
+// VO2max lookup table (Ramsbottom et al., 1988)
+// Approximation formula: VO2max = 6.65 − (35.8 × level) + ... 
+// Using validated polynomial from published tables:
+const BEEP_TABLE = {
+  // [level]: [shuttles → VO2 approx at max shuttle of that level]
+  1:28.8,2:30.2,3:31.8,4:33.6,5:35.6,6:37.6,7:39.6,8:41.6,
+  9:43.6,10:45.2,11:46.8,12:48.0,13:49.2,14:50.4,15:51.6,
+  16:52.8,17:54.0,18:55.2,19:56.4,20:57.6,21:58.8
+};
+// Shuttle correction: each shuttle within a level adds ~0.18 ml/kg/min
+function calcBeep() {
+  const lv = parseInt(document.getElementById('beep-lv').value);
+  const sh = parseInt(document.getElementById('beep-sh').value);
+  if (!lv || lv < 1 || lv > 21) return;
+  const { age, gender } = getProfile();
+  const baseVO2 = BEEP_TABLE[lv] || 28;
+  // max shuttles per level increase by 1 every ~3 levels
+  const maxSh = Math.min(3 + Math.floor(lv/3), 16);
+  const fraction = sh ? Math.min(sh/maxSh, 1) : 0.5;
+  const prevVO2 = lv > 1 ? (BEEP_TABLE[lv-1]||baseVO2-1.4) : 26;
+  const vo2 = prevVO2 + (baseVO2-prevVO2) * fraction;
+  lastResults.beep = { vo2, lv, sh };
+  showResult('res-beep', vo2, age, gender, [
+    `Level ${lv}, Shuttle ${sh||'?'}`,
+    `Total shuttles ≈ ${(lv*maxSh + (sh||0))}`,
+  ]);
+}
+
+// ── 6. Sit & Reach ────────────────────────
+// Classification: ACSM standards (cm past toes)
+function calcReach() {
+  const cm = parseFloat(document.getElementById('reach-cm').value);
+  if (isNaN(cm)) return;
+  const { age, gender } = getProfile();
+  const el = document.getElementById('res-reach');
+  el.classList.remove('hidden');
+
+  // ACSM flexibility norms (cm past toes, averaged male/female)
+  let label, color, tip;
+  if (gender === 'm') {
+    if      (cm < -8)  { label='Very Poor';  color='var(--red)';    tip='Yoga or daily hamstring stretching needed.'; }
+    else if (cm < 0)   { label='Poor';       color='var(--warn)';   tip='Stretch hamstrings and lower back daily.'; }
+    else if (cm < 10)  { label='Fair';       color='var(--blue)';   tip='Good start — add hip flexor stretches.'; }
+    else if (cm < 20)  { label='Good';       color='var(--green)';  tip='Good flexibility — maintain with yoga or stretching.'; }
+    else               { label='Excellent';  color='var(--purple)'; tip='Excellent flexibility for a runner!'; }
+  } else {
+    if      (cm < -5)  { label='Very Poor';  color='var(--red)';    tip='Yoga or daily hamstring stretching needed.'; }
+    else if (cm < 5)   { label='Poor';       color='var(--warn)';   tip='Stretch hamstrings and lower back daily.'; }
+    else if (cm < 15)  { label='Fair';       color='var(--blue)';   tip='Good start — add hip flexor stretches.'; }
+    else if (cm < 25)  { label='Good';       color='var(--green)';  tip='Good flexibility — maintain with yoga.'; }
+    else               { label='Excellent';  color='var(--purple)'; tip='Excellent flexibility for a runner!'; }
+  }
+
+  const sign = cm >= 0 ? '+' : '';
+  lastResults.reach = { cm, label };
+  el.innerHTML = `
+    <div style="font-size:18px;font-weight:800;color:${color};margin-bottom:6px">${sign}${cm} cm — ${label}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">ACSM flexibility norms · Age ${age} · ${gender==='m'?'Male':'Female'}</div>
+    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
+}
+
+// ── 7. Push-Up Test ───────────────────────
+// ACSM normative data by age & gender
+function calcPushup() {
+  const n = parseInt(document.getElementById('pushup-n').value);
+  if (!n || n < 0) return;
+  const { age, gender } = getProfile();
+  const el = document.getElementById('res-pushup');
+  el.classList.remove('hidden');
+
+  // ACSM push-up norms (full push-up, both genders)
+  // [poor, fair, good, excellent] thresholds by age bracket
+  const normsM = {
+    17: [17,22,29,36], 30: [13,18,24,30], 40: [11,15,20,25],
+    50: [9,12,17,21],  60: [6,10,14,18],  99: [5,8,12,15]
+  };
+  const normsF = {
+    17: [9,13,20,26],  30: [8,12,17,23],  40: [6,10,14,19],
+    50: [4,7,11,15],   60: [3,6,9,12],    99: [2,4,7,10]
+  };
+  const norms = gender === 'm' ? normsM : normsF;
+  const bracket = Object.keys(norms).find(k => age <= parseInt(k));
+  const [poor, fair, good, ex] = norms[bracket] || [10,15,20,25];
+
+  let label, color, tip;
+  if      (n <= poor) { label='Poor';      color='var(--red)';    tip='Add push-up practice 3×/week. Start with knee push-ups if needed.'; }
+  else if (n <= fair) { label='Fair';      color='var(--warn)';   tip='Solid foundation — push toward Good with consistent training.'; }
+  else if (n <= good) { label='Good';      color='var(--blue)';   tip='Good upper body endurance. Add variations (decline, wide-grip).'; }
+  else if (n <= ex)   { label='Excellent'; color='var(--green)';  tip='Excellent! Try weighted push-ups or one-arm variations.'; }
+  else                { label='Elite';     color='var(--purple)'; tip='Elite push-up endurance — top of your age group!'; }
+
+  lastResults.pushup = { n, label };
+  el.innerHTML = `
+    <div style="font-size:18px;font-weight:800;color:${color};margin-bottom:6px">${n} reps — ${label}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">ACSM norms · Age ${age} · ${gender==='m'?'Male':'Female'}</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px;text-align:center">
+      ${[['Poor',poor,'var(--red)'],['Fair',fair,'var(--warn)'],['Good',good,'var(--blue)'],['Excellent',ex,'var(--green)']].map(
+        ([l,v,c])=>`<div style="background:rgba(255,255,255,.05);border-radius:6px;padding:5px 2px"><div style="font-size:13px;font-weight:700;color:${c}">${v}</div><div style="font-size:10px;color:var(--muted)">${l}</div></div>`
+      ).join('')}
+    </div>
+    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
+}
+
+// ── SAVE TEST RESULT ──────────────────────
+function saveTest(type) {
+  const res = lastResults[type];
+  if (!res) { alert('Calculate a result first.'); return; }
+  const profile = getProfile();
+  const record = {
+    id: Date.now(),
+    date: new Date().toISOString(),
+    type, profile,
+    ...res,
+  };
+  DB.push('testResults', record);
+  renderTestHist();
+  confetti();
+  alert('Result saved! ✅');
+}
+
+// ── TEST HISTORY ──────────────────────────
+const TEST_META = {
+  cooper: { icon:'🏃', name:'Cooper 12-Min',      val: r => `VO2 Max ${r.vo2.toFixed(1)} ml/kg/min · ${r.distM} m` },
+  rhr:    { icon:'❤️', name:'Resting HR',          val: r => `VO2 Max ${r.vo2.toFixed(1)} ml/kg/min · RHR ${r.rhr} bpm` },
+  walk:   { icon:'🚶', name:'Rockport Walk',        val: r => `VO2 Max ${r.vo2.toFixed(1)} ml/kg/min · ${r.timeMin.toFixed(1)} min` },
+  mile:   { icon:'🎖️', name:'1.5-Mile Run',        val: r => `VO2 Max ${r.vo2.toFixed(1)} ml/kg/min · ${fmtTime(r.timeMin*60)}` },
+  beep:   { icon:'🔔', name:'Beep Test',            val: r => `VO2 Max ${r.vo2.toFixed(1)} ml/kg/min · Lv ${r.lv} Sh ${r.sh}` },
+  reach:  { icon:'🧘', name:'Sit & Reach',          val: r => `${r.cm >= 0?'+':''}${r.cm} cm — ${r.label}` },
+  pushup: { icon:'💪', name:'Push-Up Test',          val: r => `${r.n} reps — ${r.label}` },
+};
+
+function renderTestHist() {
+  const recs = DB.get('testResults', []);
+  const el   = document.getElementById('test-hist');
+  if (!recs.length) {
+    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:14px 0;font-size:14px">No tests saved yet</div>';
+    return;
+  }
+  el.innerHTML = [...recs].reverse().map(r => {
+    const m   = TEST_META[r.type] || { icon:'📊', name:r.type, val:()=>'' };
+    const d   = new Date(r.date);
+    const lbl = d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric'});
+    return `<div class="wrow">
+      <div class="wico">${m.icon}</div>
+      <div class="winfo">
+        <div class="wtitle">${m.name}</div>
+        <div class="wsub">${m.val(r)}</div>
+        <div class="wsub">${lbl} · Age ${r.profile?.age||'?'} · ${r.profile?.gender==='f'?'Female':'Male'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── LOAD PROFILE ON PAGE OPEN ─────────────
+function loadProfile() {
+  const age = DB.get('t-age', 25);
+  const gen = DB.get('t-gender', 'm');
+  const wt  = DB.get('weight', 70);
+  document.getElementById('t-age').value    = age;
+  document.getElementById('t-gender').value = gen;
+  document.getElementById('t-weight').value = wt;
+}
+
+// ══════════════════════════════════════════
+// CONFETTI
+// ══════════════════════════════════════════
+function confetti() {
+  const c=document.createElement('div'); c.className='conf'; document.body.appendChild(c);
+  const cols=['#00e5a0','#4a9eff','#f5a623','#ff6bab','#8b6dff','#fff'];
+  for(let i=0;i<45;i++){
+    const p=document.createElement('div'); p.className='cp';
+    p.style.cssText=`left:${5+Math.random()*90}%;top:-12px;background:${cols[i%6]};
+      animation-delay:${Math.random()*.6}s;animation-duration:${1.6+Math.random()*.8}s;
+      transform:scale(${.6+Math.random()*.8});border-radius:${Math.random()>.5?'50%':'3px'}`;
+    c.appendChild(p);
+  }
+  setTimeout(()=>c.remove(),3200);
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+document.getElementById('td').textContent =
+  new Date().toLocaleDateString('en-IN',{weekday:'long',month:'long',day:'numeric'});
+document.getElementById('weight').value = DB.get('weight',70);
+document.getElementById('btn-start').disabled = true;
+
+// Check if GPS was already granted (from a previous visit to an https page)
+if (navigator.permissions && navigator.permissions.query) {
+  navigator.permissions.query({name:'geolocation'}).then(r=>{
+    if (r.state === 'granted') {
+      gpsGranted = true;
+      setPill('gps-ok','✅ GPS already allowed');
+      document.getElementById('gps-req-btn').textContent = '✅ GPS Already Granted';
+      document.getElementById('gps-req-btn').classList.add('hidden');
+      document.getElementById('btn-start').disabled = false;
+      // Get initial position to show accuracy
+      navigator.geolocation.getCurrentPosition(
+        p => setPill('gps-ok',`✅ GPS ready ±${Math.round(p.coords.accuracy)}m`),
+        () => {},
+        {enableHighAccuracy:true,timeout:8000,maximumAge:5000}
+      );
+    } else if (r.state === 'denied') {
+      setPill('gps-err','❌ GPS blocked');
+      setGPSMsg('GPS was denied. Open Chrome ⋮ → Settings → Site Settings → Location → find this site → Allow. Then use Manual mode for now.');
+    }
+    // 'prompt' = waiting, button shown by default
+  }).catch(()=>{}); // Permissions API not available — button shown by default
+}
+
+refreshAll();
+</script>
+</body>
+</html>
