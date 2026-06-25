@@ -399,19 +399,20 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
     <div class="card" id="ach-streak"></div>
   </div>
 
-  <!-- ══════════ TESTS ══════════ -->
+  <!-- ══════════ HEALTH ══════════ -->
   <div class="page" id="pg-tests">
 
+    <!-- Profile -->
     <div class="sec">Your profile</div>
     <div class="card" style="padding:14px 16px">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Age</div>
           <input class="num-input" type="number" id="t-age" placeholder="25" min="10" max="99" onchange="saveProfile()" style="text-align:center">
         </div>
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Gender</div>
-          <select id="t-gender" onchange="saveProfile()" style="background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:9px 4px;color:var(--txt);font-size:13px;width:100%">
+          <select id="t-gender" onchange="saveProfile()" style="background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:9px 4px;color:var(--txt);font-size:12px;width:100%">
             <option value="m">Male</option>
             <option value="f">Female</option>
           </select>
@@ -420,19 +421,53 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Weight kg</div>
           <input class="num-input" type="number" id="t-weight" placeholder="70" min="30" max="250" onchange="saveProfile()" style="text-align:center">
         </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Height cm</div>
+          <input class="num-input" type="number" id="t-height" placeholder="170" min="100" max="250" onchange="saveProfile()" style="text-align:center">
+        </div>
       </div>
     </div>
 
-    <div class="sec">Fitness tests</div>
+    <!-- ── BODY COMPOSITION ── -->
+    <div class="sec">Body Composition</div>
 
-    <!-- Cooper 12-min Test -->
+    <!-- BMI -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div><div style="font-size:15px;font-weight:700">🏃 Cooper 12-Min Test</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">Run as far as possible in 12 minutes</div></div>
-        <div class="badge bg-g">VO2 Max</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">BMI</div>
+        <div class="badge bg-gr" style="font-size:10px">Body Mass Index</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Developed by Dr. Kenneth Cooper for the US Air Force. Run on any flat route for exactly 12 min at the hardest sustainable pace. Directly predicts VO2 max.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Uses your weight and height from the profile above. WHO standard classification. Limitations: doesn't account for muscle mass — use alongside Waist-to-Height.</div>
+      <button class="btn btn-g" style="font-size:14px;padding:11px" onclick="calcBMI()">Calculate BMI</button>
+      <div id="res-bmi" class="tres hidden" style="margin-top:10px"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('bmi')">💾 Save</button>
+    </div>
+
+    <!-- Waist-to-Height Ratio -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">Waist-to-Height Ratio</div>
+        <div class="badge bg-b" style="font-size:10px">Visceral Fat Risk</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">More accurate than BMI for cardiovascular risk. Measure waist at navel level, relaxed. Rule of thumb: keep waist less than half your height.</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Waist circumference (cm)</div>
+        <input class="num-input" type="number" id="waist-cm" placeholder="e.g. 80" min="40" max="200" oninput="calcWHR()">
+      </div>
+      <div id="res-whr" class="tres hidden"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('whr')">💾 Save</button>
+    </div>
+
+    <!-- ── CARDIOVASCULAR ── -->
+    <div class="sec">Cardiovascular Fitness</div>
+
+    <!-- VO2 Max — Cooper -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">VO2 Max</div>
+        <div class="badge bg-g" style="font-size:10px">Cooper 12-Min Run</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Run as far as you can in exactly 12 minutes on a flat surface. Gold standard field test — used by US Air Force, elite athletes. Most accurate way to estimate VO2 max without a lab.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Distance (m)</div>
@@ -444,17 +479,16 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
         </div>
       </div>
       <div id="res-cooper" class="tres hidden"></div>
-      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('cooper')">💾 Save Result</button>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('cooper')">💾 Save</button>
     </div>
 
-    <!-- Resting HR / Uth formula -->
+    <!-- VO2 Max — Resting HR -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div><div style="font-size:15px;font-weight:700">❤️ Resting HR Test</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">No running — just measure heart rate</div></div>
-        <div class="badge bg-b">Passive</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">VO2 Max</div>
+        <div class="badge bg-b" style="font-size:10px">Resting Heart Rate Method</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Measure resting heart rate (RHR) first thing in the morning before getting out of bed — count beats for 60 sec. Uses the Uth–Sørensen formula: VO2max = 15 × (HRmax / HRrest).</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">No running needed. Measure resting heart rate first thing in the morning before getting out of bed — count beats for 60 seconds. Uses the validated Uth–Sørensen formula.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Resting HR (bpm)</div>
@@ -463,21 +497,20 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Max HR (bpm)</div>
           <input class="num-input" type="number" id="mhr-val" placeholder="auto" min="100" max="230" oninput="calcRHR()">
-          <div style="font-size:10px;color:var(--muted);margin-top:3px">Blank → uses 220−age</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">Blank → 220 − age</div>
         </div>
       </div>
       <div id="res-rhr" class="tres hidden"></div>
-      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('rhr')">💾 Save Result</button>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('rhr')">💾 Save</button>
     </div>
 
-    <!-- Rockport Walk Test -->
+    <!-- Aerobic Fitness — Rockport Walk -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div><div style="font-size:15px;font-weight:700">🚶 Rockport Walk Test</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">Walk 1 mile as fast as possible</div></div>
-        <div class="badge bg-p">Beginner</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">Aerobic Fitness</div>
+        <div class="badge bg-p" style="font-size:10px">Rockport 1-Mile Walk</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Walk exactly 1 mile (1.609 km) as fast as you can without running. Record time and heart rate the instant you finish. Great for beginners or returning from injury.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Walk 1 mile (1.609 km) as fast as possible without running. Measure your heart rate immediately at the finish line. Best choice if you're a beginner or returning from injury.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Time (min)</div>
@@ -489,83 +522,58 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
         </div>
       </div>
       <div id="res-walk" class="tres hidden"></div>
-      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('walk')">💾 Save Result</button>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('walk')">💾 Save</button>
     </div>
 
-    <!-- 1.5 Mile Run Test -->
+    <!-- Resting Heart Rate Health -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div><div style="font-size:15px;font-weight:700">🎖️ 1.5-Mile Run Test</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">US Military / Navy fitness standard</div></div>
-        <div class="badge bg-w">Military</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">Resting Heart Rate</div>
+        <div class="badge bg-pk" style="font-size:10px">Cardiovascular Health</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Run 1.5 miles (2.414 km) as fast as possible. Standard US Army, Navy, and Air Force PT test. Enter finish time below.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Minutes</div>
-          <input class="num-input" type="number" id="mile-min" placeholder="e.g. 12" min="6" max="30" oninput="calcMile()">
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Seconds</div>
-          <input class="num-input" type="number" id="mile-sec" placeholder="e.g. 30" min="0" max="59" oninput="calcMile()">
-        </div>
-      </div>
-      <div id="res-mile" class="tres hidden"></div>
-      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('mile')">💾 Save Result</button>
-    </div>
-
-    <!-- Beep Test -->
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div><div style="font-size:15px;font-weight:700">🔔 Beep Test (20m Shuttle)</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">Enter the level and shuttle you reached</div></div>
-        <div class="badge bg-g">VO2 Max</div>
-      </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Run between two lines 20m apart, in time with beeps that speed up each level. Used by FIFA, rugby, military. Enter the level and shuttle number when you dropped out.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Level reached</div>
-          <input class="num-input" type="number" id="beep-lv" placeholder="e.g. 8" min="1" max="21" oninput="calcBeep()">
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Shuttle reached</div>
-          <input class="num-input" type="number" id="beep-sh" placeholder="e.g. 5" min="1" max="16" oninput="calcBeep()">
-        </div>
-      </div>
-      <div id="res-beep" class="tres hidden"></div>
-      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('beep')">💾 Save Result</button>
-    </div>
-
-    <!-- Sit & Reach (Flexibility) -->
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div><div style="font-size:15px;font-weight:700">🧘 Sit & Reach Test</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">Lower body flexibility benchmark</div></div>
-        <div class="badge bg-pk">Flexibility</div>
-      </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Sit on floor with legs straight. Place a ruler at your feet (0 at toes). Reach forward as far as possible and hold 2 sec. Record how far past your toes you reached (positive) or how short (negative).</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">A lower resting HR means your heart is more efficient. Elite athletes often have RHR of 40–50 bpm. Measure in the morning before getting up — use the same reading as the VO2 test above.</div>
       <div style="margin-bottom:10px">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Reach distance (cm, + past toes / − short)</div>
-        <input class="num-input" type="number" id="reach-cm" placeholder="e.g. +5 or -3" min="-30" max="40" step="0.5" oninput="calcReach()">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Resting HR (bpm)</div>
+        <input class="num-input" type="number" id="rhr2-val" placeholder="e.g. 55" min="30" max="120" oninput="calcRHRHealth()">
       </div>
-      <div id="res-reach" class="tres hidden"></div>
-      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('reach')">💾 Save Result</button>
+      <div id="res-rhr2" class="tres hidden"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('rhr2')">💾 Save</button>
     </div>
 
-    <!-- Push-up Test -->
+    <!-- ── MUSCULAR FITNESS ── -->
+    <div class="sec">Muscular Fitness</div>
+
+    <!-- Muscular Endurance — Push-up -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div><div style="font-size:15px;font-weight:700">💪 Push-Up Endurance Test</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">Max push-ups without stopping</div></div>
-        <div class="badge bg-b">Strength</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">Muscular Endurance</div>
+        <div class="badge bg-b" style="font-size:10px">Push-Up Test</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Do as many full push-ups as possible without stopping or resting. No knee push-ups. Full chest-to-floor, arms fully extended at top. Used by US Army ACFT and Canadian Armed Forces.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Max push-ups without stopping or resting. Full range — chest to floor, arms fully extended at top. No knee push-ups. Standard test used by US Army ACFT, Canadian Armed Forces, and ACSM.</div>
       <div style="margin-bottom:10px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Push-ups completed</div>
         <input class="num-input" type="number" id="pushup-n" placeholder="e.g. 30" min="0" max="300" oninput="calcPushup()">
       </div>
       <div id="res-pushup" class="tres hidden"></div>
-      <button class="btn btn-g" style="font-size:14px;padding:11px;margin-top:8px" onclick="saveTest('pushup')">💾 Save Result</button>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('pushup')">💾 Save</button>
+    </div>
+
+    <!-- ── FLEXIBILITY ── -->
+    <div class="sec">Flexibility</div>
+
+    <!-- Flexibility — Sit & Reach -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">Lower Body Flexibility</div>
+        <div class="badge bg-pk" style="font-size:10px">Sit & Reach Test</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Sit on the floor with legs straight. Place a ruler at your feet, zero at toes. Reach as far forward as possible and hold 2 seconds. Enter how far past your toes you reached (+) or how far short (−).</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Reach (cm) — + past toes / − short of toes</div>
+        <input class="num-input" type="number" id="reach-cm" placeholder="e.g. +5 or -3" min="-30" max="40" step="0.5" oninput="calcReach()">
+      </div>
+      <div id="res-reach" class="tres hidden"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('reach')">💾 Save</button>
     </div>
 
     <div class="sec">Test history</div>
@@ -596,7 +604,7 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 104.93 19.07M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Track
   </button>
   <button class="nb" onclick="showPage('pg-tests')" id="nb-tests">
-    <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Tests
+    <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Health
   </button>
   <button class="nb" onclick="showPage('pg-ach')"      id="nb-ach">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>Badges
@@ -1450,20 +1458,22 @@ function showPage(id) {
 // ── Profile helpers ──────────────────────
 function getProfile() {
   return {
-    age:    parseInt(document.getElementById('t-age').value)    || DB.get('t-age',25),
-    gender: document.getElementById('t-gender').value           || DB.get('t-gender','m'),
+    age:    parseInt(document.getElementById('t-age').value)      || DB.get('t-age',25),
+    gender: document.getElementById('t-gender').value             || DB.get('t-gender','m'),
     weight: parseFloat(document.getElementById('t-weight').value) || DB.get('weight',70),
+    height: parseFloat(document.getElementById('t-height').value) || DB.get('t-height',170),
   };
 }
 function saveProfile() {
   const p = getProfile();
-  DB.set('t-age', p.age);
+  DB.set('t-age',    p.age);
   DB.set('t-gender', p.gender);
-  DB.set('weight', p.weight);
-  document.getElementById('weight').value = p.weight; // sync settings page
+  DB.set('weight',   p.weight);
+  DB.set('t-height', p.height);
+  document.getElementById('weight').value = p.weight;
 }
 
-// ── VO2 Max classification (ml/kg/min) ───
+// ── VO2 Max classification ────────────────
 // Source: ACSM / Fitness classifications by age & gender
 function vo2Class(vo2, age, gender) {
   // Simplified 5-tier table averaged across age groups
@@ -1507,6 +1517,95 @@ function showResult(id, vo2, age, gender, extraLines=[]) {
 
 // store last computed result so Save knows what to store
 let lastResults = {};
+
+// ── BMI ───────────────────────────────────
+// WHO classification
+function calcBMI() {
+  const { weight, height, age, gender } = getProfile();
+  if (!weight || !height) { alert('Enter weight and height in your profile above.'); return; }
+  const bmi = weight / ((height/100) ** 2);
+  const el  = document.getElementById('res-bmi');
+  el.classList.remove('hidden');
+
+  let label, color, tip;
+  if      (bmi < 18.5) { label='Underweight';      color='var(--blue)';   tip='Consider increasing calorie intake with nutrient-dense foods.'; }
+  else if (bmi < 25)   { label='Healthy Weight';   color='var(--green)';  tip='Great range. Keep up your activity and balanced diet.'; }
+  else if (bmi < 30)   { label='Overweight';       color='var(--warn)';   tip='Adding more cardio and reducing processed foods can help.'; }
+  else if (bmi < 35)   { label='Obese Class I';    color='var(--red)';    tip='Speaking with a doctor or dietitian can help you build a plan.'; }
+  else                  { label='Obese Class II+';  color='var(--red)';    tip='Medical guidance is recommended. Running even 10 min/day helps.'; }
+
+  lastResults.bmi = { bmi: +bmi.toFixed(1), label };
+  el.innerHTML = `
+    <div style="font-size:24px;font-weight:800;color:${color};margin-bottom:4px">${bmi.toFixed(1)}</div>
+    <div style="font-size:15px;font-weight:700;color:${color};margin-bottom:8px">${label}</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px;text-align:center">
+      ${[['<18.5','Underweight','var(--blue)'],['18.5–24.9','Healthy','var(--green)'],['25–29.9','Overweight','var(--warn)'],['30+','Obese','var(--red)']].map(
+        ([v,l,c])=>`<div style="background:rgba(255,255,255,.05);border-radius:6px;padding:5px 2px"><div style="font-size:11px;font-weight:700;color:${c}">${v}</div><div style="font-size:9px;color:var(--muted)">${l}</div></div>`
+      ).join('')}
+    </div>
+    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
+}
+
+// ── WAIST-TO-HEIGHT RATIO ─────────────────
+// WHO / Ashwell shape chart: ratio = waist / height
+// < 0.4  → Extremely lean
+// < 0.5  → Healthy
+// < 0.6  → Overweight / increased risk
+// ≥ 0.6  → High risk
+function calcWHR() {
+  const waist = parseFloat(document.getElementById('waist-cm').value);
+  if (!waist) return;
+  const { height } = getProfile();
+  if (!height) { alert('Enter your height in the profile above.'); return; }
+  const ratio = waist / height;
+  const el    = document.getElementById('res-whr');
+  el.classList.remove('hidden');
+
+  let label, color, tip;
+  if      (ratio < 0.4)  { label='Very Lean';         color='var(--blue)';   tip='Very lean. Ensure you are eating enough to fuel your training.'; }
+  else if (ratio < 0.5)  { label='Healthy';            color='var(--green)';  tip='Healthy range. Good cardiovascular risk profile.'; }
+  else if (ratio < 0.53) { label='Acceptable';         color='var(--blue)';   tip='Acceptable. Staying active and eating well maintains this.'; }
+  else if (ratio < 0.58) { label='Increased Risk';     color='var(--warn)';   tip='Some increased risk. More cardio and less processed food helps.'; }
+  else if (ratio < 0.63) { label='High Risk';          color='var(--red)';    tip='High cardiovascular risk. Diet changes and exercise are important.'; }
+  else                    { label='Very High Risk';     color='var(--red)';    tip='Very high risk. Medical guidance strongly recommended.'; }
+
+  lastResults.whr = { ratio: +ratio.toFixed(3), waist, label };
+  el.innerHTML = `
+    <div style="font-size:24px;font-weight:800;color:${color};margin-bottom:4px">${ratio.toFixed(2)}</div>
+    <div style="font-size:15px;font-weight:700;color:${color};margin-bottom:6px">${label}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Waist ${waist} cm ÷ Height ${getProfile().height} cm · Keep below 0.5</div>
+    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
+}
+
+// ── RESTING HR HEALTH ─────────────────────
+// AHA / Mayo Clinic classifications
+function calcRHRHealth() {
+  const rhr = parseFloat(document.getElementById('rhr2-val').value);
+  if (!rhr) return;
+  const { age } = getProfile();
+  const el = document.getElementById('res-rhr2');
+  el.classList.remove('hidden');
+
+  let label, color, tip;
+  if      (rhr < 40)  { label='Athletic / Elite';   color='var(--purple)'; tip='Elite level. Typical of serious endurance athletes.'; }
+  else if (rhr < 50)  { label='Excellent';           color:'var(--green)';  tip='Excellent cardiovascular fitness. Heart is very efficient.'; }
+  else if (rhr < 60)  { label='Good';                color='var(--green)';  tip='Good heart efficiency. Keep up your aerobic training.'; }
+  else if (rhr < 70)  { label='Normal';              color='var(--blue)';   tip='Normal range. Regular cardio will lower this over time.'; }
+  else if (rhr < 80)  { label='Average';             color='var(--warn)';   tip='Average. 3× cardio sessions per week can improve this.'; }
+  else if (rhr < 100) { label='High-Normal';         color:'var(--warn)';   tip='Above average. Reduce stress, caffeine and increase aerobic exercise.'; }
+  else                 { label='Consult a Doctor';   color='var(--red)';    tip='Resting HR above 100 (tachycardia) — see a doctor.'; }
+
+  lastResults.rhr2 = { rhr, label };
+  el.innerHTML = `
+    <div style="font-size:24px;font-weight:800;color:${color};margin-bottom:4px">${rhr} bpm</div>
+    <div style="font-size:15px;font-weight:700;color:${color};margin-bottom:6px">${label}</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px;text-align:center">
+      ${[['<50','Excellent','var(--green)'],['50–69','Good / Normal','var(--blue)'],['70–99','Average–High','var(--warn)']].map(
+        ([v,l,c])=>`<div style="background:rgba(255,255,255,.05);border-radius:6px;padding:5px 2px"><div style="font-size:11px;font-weight:700;color:${c}">${v}</div><div style="font-size:9px;color:var(--muted)">${l}</div></div>`
+      ).join('')}
+    </div>
+    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
+}
 
 // ── 1. Cooper 12-Min Test ─────────────────
 // Formula: VO2max = (distM − 504.9) / 44.73   (Cooper, 1968)
@@ -1707,13 +1806,14 @@ function saveTest(type) {
 
 // ── TEST HISTORY ──────────────────────────
 const TEST_META = {
-  cooper: { icon:'🏃', name:'Cooper 12-Min',      val: r => `VO2 Max ${r.vo2.toFixed(1)} ml/kg/min · ${r.distM} m` },
-  rhr:    { icon:'❤️', name:'Resting HR',          val: r => `VO2 Max ${r.vo2.toFixed(1)} ml/kg/min · RHR ${r.rhr} bpm` },
-  walk:   { icon:'🚶', name:'Rockport Walk',        val: r => `VO2 Max ${r.vo2.toFixed(1)} ml/kg/min · ${r.timeMin.toFixed(1)} min` },
-  mile:   { icon:'🎖️', name:'1.5-Mile Run',        val: r => `VO2 Max ${r.vo2.toFixed(1)} ml/kg/min · ${fmtTime(r.timeMin*60)}` },
-  beep:   { icon:'🔔', name:'Beep Test',            val: r => `VO2 Max ${r.vo2.toFixed(1)} ml/kg/min · Lv ${r.lv} Sh ${r.sh}` },
-  reach:  { icon:'🧘', name:'Sit & Reach',          val: r => `${r.cm >= 0?'+':''}${r.cm} cm — ${r.label}` },
-  pushup: { icon:'💪', name:'Push-Up Test',          val: r => `${r.n} reps — ${r.label}` },
+  bmi:    { icon:'⚖️', name:'BMI',                   val: r => `${r.bmi} — ${r.label}` },
+  whr:    { icon:'📐', name:'Waist-to-Height Ratio',  val: r => `${r.ratio} (waist ${r.waist} cm) — ${r.label}` },
+  cooper: { icon:'🫁', name:'VO2 Max (Cooper Run)',   val: r => `${r.vo2.toFixed(1)} ml/kg/min · ${r.distM} m` },
+  rhr:    { icon:'❤️', name:'VO2 Max (Resting HR)',   val: r => `${r.vo2.toFixed(1)} ml/kg/min · RHR ${r.rhr} bpm` },
+  walk:   { icon:'🚶', name:'Aerobic Fitness (Walk)', val: r => `${r.vo2.toFixed(1)} ml/kg/min · ${r.timeMin?.toFixed(1)} min` },
+  rhr2:   { icon:'💓', name:'Resting Heart Rate',     val: r => `${r.rhr} bpm — ${r.label}` },
+  pushup: { icon:'💪', name:'Muscular Endurance',     val: r => `${r.n} push-ups — ${r.label}` },
+  reach:  { icon:'🧘', name:'Lower Body Flexibility', val: r => `${r.cm >= 0?'+':''}${r.cm} cm — ${r.label}` },
 };
 
 function renderTestHist() {
