@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Stride</title>
+<link rel="manifest" href="#" id="manifest-link">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -54,6 +55,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:-apple-s
 .btn-r{background:var(--red);color:#fff}
 .btn-s{background:var(--surf2);color:var(--txt);border:.5px solid var(--bdr2)}
 .btn-b{background:var(--blue);color:#fff}
+.btn-o{background:var(--warn);color:#000}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
 
 .badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600}
@@ -61,6 +63,8 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:-apple-s
 .bg-b{background:rgba(74,158,255,.15);color:var(--blue)}
 .bg-w{background:rgba(245,166,35,.15);color:var(--warn)}
 .bg-gr{background:rgba(255,255,255,.07);color:var(--muted)}
+.bg-p{background:rgba(139,109,255,.15);color:var(--purple)}
+.bg-pk{background:rgba(255,107,171,.15);color:var(--pink)}
 
 /* GPS MODE CARD */
 .mode-card{background:var(--surf2);border:.5px solid var(--bdr2);border-radius:12px;padding:14px 16px;margin-bottom:10px}
@@ -98,6 +102,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:-apple-s
 .wsub{font-size:12px;color:var(--muted);margin-top:2px}
 
 input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);border-radius:8px;padding:10px 12px;color:var(--txt);font-size:15px;width:100%}
+input[type=number]:focus,select:focus{outline:none;border-color:var(--green)}
 .tog-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:.5px solid var(--bdr)}
 .tog{width:44px;height:24px;border-radius:100px;background:var(--surf3);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
 .tog.on{background:var(--green)}
@@ -128,13 +133,45 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
 .offline-banner{display:none;align-items:center;gap:8px;background:rgba(245,166,35,.12);color:var(--warn);font-size:12px;font-weight:600;padding:8px 12px;border-radius:10px;margin:0 16px 10px}
 .offline-banner.show{display:flex}
 
-/* NATIVE WEEKLY BAR CHART (no external library) */
+/* WEEKLY BAR CHART */
 .bar-chart{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;height:140px;padding:0 4px}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
 .bar-val{font-size:10px;color:var(--muted);margin-bottom:4px;min-height:12px}
 .bar-fill{width:100%;max-width:28px;background:var(--green);border-radius:6px 6px 0 0;transition:height .4s;min-height:2px}
 .bar-day{font-size:11px;color:var(--muted);margin-top:6px}
 .bar-day.today{color:var(--green);font-weight:700}
+
+/* LAP TOAST */
+.lap-toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--surf);border:.5px solid var(--green);border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;color:var(--green);z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,229,160,.2)}
+.lap-toast.show{opacity:1}
+
+/* CADENCE indicator */
+.cadence-ring{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:2px solid var(--surf3);font-size:11px;font-weight:700;flex-shrink:0}
+
+/* ROUTE MAP */
+.route-map{background:var(--surf2);border-radius:10px;overflow:hidden;margin-top:10px}
+.route-map svg{display:block;width:100%;height:120px}
+
+/* TRAINING PLAN */
+.pace-zone{border-radius:10px;padding:12px;margin-bottom:8px}
+.pace-zone-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.pace-zone-val{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.pace-zone-desc{font-size:11px;margin-top:4px;opacity:.75;line-height:1.5}
+
+/* DELETE button in history */
+.del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px;transition:color .15s}
+.del-btn:hover{color:var(--red)}
+
+/* EXPORT banner */
+.export-row{display:flex;gap:8px;margin-top:10px}
+
+/* DATE PICKER for manual */
+.date-row{display:flex;gap:8px;margin-bottom:8px}
+.date-row input[type=date]{background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:10px;color:var(--txt);font-size:13px;width:100%;color-scheme:dark}
+.date-row input[type=date]:focus{outline:none;border-color:var(--green)}
+
+/* STEP COUNTER indicator */
+.step-row{display:flex;align-items:center;gap:8px;background:var(--surf3);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -148,20 +185,21 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
     <div class="streak" id="streak-badge">🔥 0 day streak</div>
   </div>
 
-  <!-- Offline indicator -->
-  <div class="offline-banner" id="offline-banner">📴 <span>Offline — everything still works, your data is saved on this device.</span></div>
+  <div class="offline-banner" id="offline-banner">📴 <span>Offline — your data is saved on this device.</span></div>
+
+  <!-- Lap toast notification -->
+  <div class="lap-toast" id="lap-toast">🏁 Lap 1 — --:-- /km</div>
 
   <!-- ══════════ HOME ══════════ -->
   <div class="page active" id="pg-home">
 
-    <!-- GPS / MODE selector -->
     <div class="mode-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-size:13px;font-weight:600">Tracking mode</span>
         <span id="gps-pill" class="gps-pill gps-warn">📡 GPS not ready</span>
       </div>
       <div class="mode-row">
-        <button class="mode-btn" id="mbtn-gps"    onclick="setMode('gps')">📍 GPS Auto</button>
+        <button class="mode-btn" id="mbtn-gps" onclick="setMode('gps')">📍 GPS Auto</button>
         <button class="mode-btn sel" id="mbtn-manual" onclick="setMode('manual')">✏️ Manual</button>
       </div>
 
@@ -171,17 +209,24 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
           📡 Request GPS Permission
         </button>
         <div id="gps-msg" style="font-size:12px;color:var(--muted);margin-top:7px;line-height:1.5">
-          GPS uses your phone's location chip directly — it works with no signal bars, no WiFi, and no mobile data, as long as Location is turned on in your phone settings.
+          GPS uses your phone's location chip — works with no WiFi or mobile data, as long as Location is on in your phone settings.
         </div>
       </div>
 
       <!-- Manual sub-panel -->
       <div id="manual-panel">
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
-          Just enter distance and time — we handle the rest.
+          Enter distance and time — we handle the rest.
         </div>
 
-        <!-- Row 1: distance + duration -->
+        <!-- Date picker (NEW) -->
+        <div class="date-row">
+          <div style="flex:1">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Workout date</div>
+            <input type="date" id="m-date">
+          </div>
+        </div>
+
         <div class="g2" style="margin-bottom:8px">
           <div>
             <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Distance</div>
@@ -200,21 +245,13 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
           </div>
         </div>
 
-        <!-- Terrain picker — this is how we get elevation -->
+        <!-- Terrain picker -->
         <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Terrain type</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px">
-          <button class="terrain-btn sel" id="tb-flat"   onclick="setTerrain('flat')"   title="Flat — 0% grade">
-            <div style="font-size:20px">🛣️</div><div>Flat</div><div style="font-size:9px;opacity:.7">0%</div>
-          </button>
-          <button class="terrain-btn" id="tb-rolling" onclick="setTerrain('rolling')" title="Rolling hills — 2-5% grade">
-            <div style="font-size:20px">🌄</div><div>Rolling</div><div style="font-size:9px;opacity:.7">2-5%</div>
-          </button>
-          <button class="terrain-btn" id="tb-hilly"   onclick="setTerrain('hilly')"   title="Hilly — 8-15% grade">
-            <div style="font-size:20px">⛰️</div><div>Hilly</div><div style="font-size:9px;opacity:.7">8-15%</div>
-          </button>
-          <button class="terrain-btn" id="tb-steep"   onclick="setTerrain('steep')"   title="Steep / mountains — 20%+ grade">
-            <div style="font-size:20px">🏔️</div><div>Steep</div><div style="font-size:9px;opacity:.7">20%+</div>
-          </button>
+          <button class="terrain-btn sel" id="tb-flat"    onclick="setTerrain('flat')"><div style="font-size:20px">🛣️</div><div>Flat</div><div style="font-size:9px;opacity:.7">0%</div></button>
+          <button class="terrain-btn"    id="tb-rolling"  onclick="setTerrain('rolling')"><div style="font-size:20px">🌄</div><div>Rolling</div><div style="font-size:9px;opacity:.7">2-5%</div></button>
+          <button class="terrain-btn"    id="tb-hilly"    onclick="setTerrain('hilly')"><div style="font-size:20px">⛰️</div><div>Hilly</div><div style="font-size:9px;opacity:.7">8-15%</div></button>
+          <button class="terrain-btn"    id="tb-steep"    onclick="setTerrain('steep')"><div style="font-size:20px">🏔️</div><div>Steep</div><div style="font-size:9px;opacity:.7">20%+</div></button>
         </div>
 
         <!-- Live preview card -->
@@ -233,7 +270,7 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
       </div>
     </div>
 
-    <!-- Live workout card (GPS mode) — always in DOM, shown/hidden via setMode -->
+    <!-- Live workout card (GPS mode) -->
     <div id="live-card" class="card hidden" style="background:linear-gradient(135deg,#1a2a20,#16191f);border-color:rgba(0,229,160,.18)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div>
@@ -255,7 +292,7 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
         <div class="met"><div class="mval b" id="hspd">0.0</div><div class="mlab">km/h speed</div></div>
       </div>
 
-      <!-- PACE CARD — the main new section -->
+      <!-- PACE CARD -->
       <div style="background:var(--surf3);border-radius:12px;padding:12px 14px;margin-bottom:10px">
         <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Pace</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
@@ -276,12 +313,29 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
           </div>
         </div>
 
-        <!-- Pace trend: last 10 GPS samples shown as mini bars -->
+        <!-- Pace trend bars with numeric tooltip -->
         <div style="margin-top:10px">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:5px">Pace trend (last samples) — shorter bar = faster</div>
-          <div id="pace-bars" style="display:flex;align-items:flex-end;gap:3px;height:28px">
-            <!-- filled by JS -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <div style="font-size:10px;color:var(--muted)">Pace trend — shorter = faster</div>
+            <div style="font-size:10px;color:var(--muted)" id="pace-latest-label"></div>
           </div>
+          <div id="pace-bars" style="display:flex;align-items:flex-end;gap:3px;height:28px"></div>
+        </div>
+      </div>
+
+      <!-- CADENCE (step counter via DeviceMotion) -->
+      <div id="cadence-card" style="background:var(--surf3);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Cadence</div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <span style="font-size:28px;font-weight:800;color:var(--pink)" id="cadence-val">--</span>
+            <span style="font-size:12px;color:var(--muted)">spm</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px" id="cadence-hint">Target: 170–180 spm</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Steps</div>
+          <div style="font-size:20px;font-weight:700;color:var(--txt)" id="step-count">0</div>
         </div>
       </div>
 
@@ -302,34 +356,18 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
         <div style="font-size:11px;color:var(--muted)" id="goal-lbl">No goal set</div>
       </div>
 
-      <!-- START / PAUSE / STOP buttons — always visible in GPS mode -->
+      <!-- START / PAUSE / STOP -->
       <div style="margin-top:14px">
-        <!-- Before workout starts: just Start -->
         <div id="btns-idle">
-          <button class="btn btn-g" id="btn-start" onclick="startWorkout()" style="font-size:16px;padding:15px">
-            ▶ Start
-          </button>
+          <button class="btn btn-g" id="btn-start" onclick="startWorkout()" style="font-size:16px;padding:15px">▶ Start</button>
         </div>
-
-        <!-- During workout: Pause + Stop side by side -->
         <div id="btns-active" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <button class="btn" id="btn-pause" onclick="pauseWorkout()"
-            style="background:var(--warn);color:#000;font-size:15px;padding:14px">
-            ⏸ Pause
-          </button>
-          <button class="btn btn-r" onclick="stopWorkout()" style="font-size:15px;padding:14px">
-            ⏹ Stop
-          </button>
+          <button class="btn btn-o" id="btn-pause" onclick="pauseWorkout()" style="font-size:15px;padding:14px">⏸ Pause</button>
+          <button class="btn btn-r" onclick="stopWorkout()" style="font-size:15px;padding:14px">⏹ Stop</button>
         </div>
-
-        <!-- Paused: Resume + Stop side by side -->
         <div id="btns-paused" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <button class="btn btn-g" onclick="resumeWorkout()" style="font-size:15px;padding:14px">
-            ▶ Resume
-          </button>
-          <button class="btn btn-r" onclick="stopWorkout()" style="font-size:15px;padding:14px">
-            ⏹ Stop & Save
-          </button>
+          <button class="btn btn-g" onclick="resumeWorkout()" style="font-size:15px;padding:14px">▶ Resume</button>
+          <button class="btn btn-r" onclick="stopWorkout()" style="font-size:15px;padding:14px">⏹ Stop & Save</button>
         </div>
       </div>
     </div>
@@ -337,6 +375,38 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
     <div class="sec">Recent workouts</div>
     <div class="card" id="recent-list">
       <div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>
+    </div>
+  </div>
+
+  <!-- ══════════ TRAINING PLAN ══════════ -->
+  <div class="page" id="pg-plan">
+    <div class="sec">Your 5K profile</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+        Enter your current 5K time and target time. We'll calculate your training paces based on the Jack Daniels VDOT method.
+      </div>
+      <div class="g2" style="margin-bottom:8px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Current 5K (mm:ss)</div>
+          <input class="num-input" type="text" id="plan-current" placeholder="27:00" oninput="calcPlan()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Target 5K (mm:ss)</div>
+          <input class="num-input" type="text" id="plan-target" placeholder="20:00" oninput="calcPlan()">
+        </div>
+      </div>
+      <div id="plan-vdot" style="font-size:12px;color:var(--muted);margin-bottom:10px;min-height:18px"></div>
+    </div>
+
+    <div id="plan-zones" class="hidden">
+      <div class="sec">Training paces</div>
+      <div class="card" id="pace-zones-card"></div>
+
+      <div class="sec">Weekly structure</div>
+      <div class="card" id="weekly-plan-card"></div>
+
+      <div class="sec">Time to goal estimate</div>
+      <div class="card" id="goal-timeline-card"></div>
     </div>
   </div>
 
@@ -407,6 +477,20 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
         <div class="bar-chart" id="wkchart"></div>
       </div>
     </div>
+
+    <!-- DATA EXPORT / IMPORT -->
+    <div class="sec">Data</div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+        Export all your workouts, health tests, and settings as a JSON file for backup or use in other apps.
+      </div>
+      <div class="export-row">
+        <button class="btn btn-s" style="font-size:14px;padding:12px" onclick="exportData()">📤 Export JSON</button>
+        <button class="btn btn-s" style="font-size:14px;padding:12px" onclick="document.getElementById('import-file').click()">📥 Import JSON</button>
+      </div>
+      <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(this)">
+      <div id="export-status" style="font-size:12px;color:var(--muted);margin-top:8px;min-height:16px"></div>
+    </div>
   </div>
 
   <!-- ══════════ ACHIEVEMENTS ══════════ -->
@@ -422,7 +506,6 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
   <!-- ══════════ HEALTH ══════════ -->
   <div class="page" id="pg-tests">
 
-    <!-- Profile -->
     <div class="sec">Your profile</div>
     <div class="card" style="padding:14px 16px">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
@@ -448,28 +531,25 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
       </div>
     </div>
 
-    <!-- ── BODY COMPOSITION ── -->
     <div class="sec">Body Composition</div>
 
-    <!-- BMI -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div style="font-size:17px;font-weight:800">BMI</div>
         <div class="badge bg-gr" style="font-size:10px">Body Mass Index</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Uses your weight and height from the profile above. WHO standard classification. Limitations: doesn't account for muscle mass — use alongside Waist-to-Height.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Uses weight and height from profile above. WHO standard. Doesn't account for muscle mass — use alongside Waist-to-Height.</div>
       <button class="btn btn-g" style="font-size:14px;padding:11px" onclick="calcBMI()">Calculate BMI</button>
       <div id="res-bmi" class="tres hidden" style="margin-top:10px"></div>
       <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('bmi')">💾 Save</button>
     </div>
 
-    <!-- Waist-to-Height Ratio -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div style="font-size:17px;font-weight:800">Waist-to-Height Ratio</div>
         <div class="badge bg-b" style="font-size:10px">Visceral Fat Risk</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">More accurate than BMI for cardiovascular risk. Measure waist at navel level, relaxed. Rule of thumb: keep waist less than half your height.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">More accurate than BMI for cardiovascular risk. Measure waist at navel level, relaxed. Keep waist under half your height.</div>
       <div style="margin-bottom:10px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Waist circumference (cm)</div>
         <input class="num-input" type="number" id="waist-cm" placeholder="e.g. 80" min="40" max="200" oninput="calcWHR()">
@@ -478,16 +558,14 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
       <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('whr')">💾 Save</button>
     </div>
 
-    <!-- ── CARDIOVASCULAR ── -->
     <div class="sec">Cardiovascular Fitness</div>
 
-    <!-- VO2 Max — Cooper -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div style="font-size:17px;font-weight:800">VO2 Max</div>
         <div class="badge bg-g" style="font-size:10px">Cooper 12-Min Run</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Run as far as you can in exactly 12 minutes on a flat surface. Gold standard field test — used by US Air Force, elite athletes. Most accurate way to estimate VO2 max without a lab.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Run as far as possible in exactly 12 minutes on flat ground. Gold standard field test — used by US Air Force and elite athletes.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Distance (m)</div>
@@ -502,14 +580,13 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
       <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('cooper')">💾 Save</button>
     </div>
 
-    <!-- VO2 Max — Resting HR -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div style="font-size:17px;font-weight:800">VO2 Max</div>
         <div class="badge bg-b" style="font-size:10px">Resting Heart Rate Method</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">No running needed. Measure resting heart rate first thing in the morning before getting out of bed — count beats for 60 seconds. Uses the validated Uth–Sørensen formula.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">No running needed. Measure resting HR first thing in the morning — count beats for 60 seconds. Uses Uth–Sørensen formula. For more accurate max HR, use Tanaka: 208 − 0.7 × age.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Resting HR (bpm)</div>
           <input class="num-input" type="number" id="rhr-val" placeholder="e.g. 55" min="30" max="120" oninput="calcRHR()">
@@ -517,20 +594,26 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Max HR (bpm)</div>
           <input class="num-input" type="number" id="mhr-val" placeholder="auto" min="100" max="230" oninput="calcRHR()">
-          <div style="font-size:10px;color:var(--muted);margin-top:3px">Blank → 220 − age</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">Blank → Tanaka</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Max HR formula</div>
+          <select id="mhr-formula" onchange="calcRHR()" style="background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:9px 4px;color:var(--txt);font-size:11px;width:100%">
+            <option value="tanaka">Tanaka (accurate)</option>
+            <option value="fox">Fox 220−age</option>
+          </select>
         </div>
       </div>
       <div id="res-rhr" class="tres hidden"></div>
       <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('rhr')">💾 Save</button>
     </div>
 
-    <!-- Aerobic Fitness — Rockport Walk -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div style="font-size:17px;font-weight:800">Aerobic Fitness</div>
         <div class="badge bg-p" style="font-size:10px">Rockport 1-Mile Walk</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Walk 1 mile (1.609 km) as fast as possible without running. Measure your heart rate immediately at the finish line. Best choice if you're a beginner or returning from injury.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Walk 1 mile (1.609 km) as fast as possible without running. Measure heart rate immediately at finish. Best for beginners or injury recovery.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Time (min)</div>
@@ -545,13 +628,12 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
       <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('walk')">💾 Save</button>
     </div>
 
-    <!-- Resting Heart Rate Health -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div style="font-size:17px;font-weight:800">Resting Heart Rate</div>
         <div class="badge bg-pk" style="font-size:10px">Cardiovascular Health</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">A lower resting HR means your heart is more efficient. Elite athletes often have RHR of 40–50 bpm. Measure in the morning before getting up — use the same reading as the VO2 test above.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Lower RHR = more efficient heart. Elite athletes often hit 40–50 bpm. Measure in the morning before getting up.</div>
       <div style="margin-bottom:10px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Resting HR (bpm)</div>
         <input class="num-input" type="number" id="rhr2-val" placeholder="e.g. 55" min="30" max="120" oninput="calcRHRHealth()">
@@ -560,16 +642,14 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
       <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('rhr2')">💾 Save</button>
     </div>
 
-    <!-- ── MUSCULAR FITNESS ── -->
     <div class="sec">Muscular Fitness</div>
 
-    <!-- Muscular Endurance — Push-up -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div style="font-size:17px;font-weight:800">Muscular Endurance</div>
         <div class="badge bg-b" style="font-size:10px">Push-Up Test</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Max push-ups without stopping or resting. Full range — chest to floor, arms fully extended at top. No knee push-ups. Standard test used by US Army ACFT, Canadian Armed Forces, and ACSM.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Max push-ups without stopping. Full range — chest to floor, arms fully extended. No knee push-ups. Standard test used by US Army ACFT.</div>
       <div style="margin-bottom:10px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Push-ups completed</div>
         <input class="num-input" type="number" id="pushup-n" placeholder="e.g. 30" min="0" max="300" oninput="calcPushup()">
@@ -578,16 +658,14 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
       <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('pushup')">💾 Save</button>
     </div>
 
-    <!-- ── FLEXIBILITY ── -->
     <div class="sec">Flexibility</div>
 
-    <!-- Flexibility — Sit & Reach -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div style="font-size:17px;font-weight:800">Lower Body Flexibility</div>
         <div class="badge bg-pk" style="font-size:10px">Sit & Reach Test</div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Sit on the floor with legs straight. Place a ruler at your feet, zero at toes. Reach as far forward as possible and hold 2 seconds. Enter how far past your toes you reached (+) or how far short (−).</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Sit on floor, legs straight. Ruler at feet, zero at toes. Reach forward, hold 2 sec. Enter distance past (+) or short of (−) toes.</div>
       <div style="margin-bottom:10px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Reach (cm) — + past toes / − short of toes</div>
         <input class="num-input" type="number" id="reach-cm" placeholder="e.g. +5 or -3" min="-30" max="40" step="0.5" oninput="calcReach()">
@@ -600,7 +678,6 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
     <div class="card" id="test-hist">
       <div style="color:var(--muted);text-align:center;padding:14px 0;font-size:14px">No tests saved yet</div>
     </div>
-
   </div>
 
   <!-- ══════════ HISTORY ══════════ -->
@@ -620,6 +697,9 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
   <button class="nb active" onclick="showPage('pg-home')"     id="nb-home">
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
   </button>
+  <button class="nb" onclick="showPage('pg-plan')" id="nb-plan">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Train
+  </button>
   <button class="nb" onclick="showPage('pg-settings')" id="nb-settings">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 104.93 19.07M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Track
   </button>
@@ -630,17 +710,17 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>Badges
   </button>
   <button class="nb" onclick="showPage('pg-hist')"     id="nb-hist">
-    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>History
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>History
   </button>
 </nav>
 
-<!-- GOAL MODAL -->
+<!-- GOAL MODAL (auto-closes after 4s) -->
 <div class="overlay hidden" id="goal-modal">
   <div class="modal">
     <div style="font-size:52px">🏁</div>
     <h2>Goal Reached!</h2>
     <p id="goal-modal-txt">You crushed it!</p>
-    <button class="btn btn-g" onclick="closeModal('goal-modal')">Let's go!</button>
+    <button class="btn btn-g" onclick="closeModal('goal-modal')">Keep going!</button>
   </div>
 </div>
 
@@ -664,1329 +744,1314 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
   </div>
 </div>
 
+<!-- DELETE CONFIRM MODAL -->
+<div class="overlay hidden" id="del-modal">
+  <div class="modal">
+    <div style="font-size:52px">🗑️</div>
+    <h2>Delete workout?</h2>
+    <p>This can't be undone.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button class="btn btn-s" onclick="closeModal('del-modal')">Cancel</button>
+      <button class="btn btn-r" id="del-confirm-btn" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
 // ══════════════════════════════════════════
 // OFFLINE BANNER
 // ══════════════════════════════════════════
-function updateOnlineStatus() {
-  const el = document.getElementById('offline-banner');
-  if (!navigator.onLine) el.classList.add('show');
-  else el.classList.remove('show');
+function updateOnlineStatus(){
+  const el=document.getElementById('offline-banner');
+  navigator.onLine?el.classList.remove('show'):el.classList.add('show');
 }
-window.addEventListener('online',  updateOnlineStatus);
-window.addEventListener('offline', updateOnlineStatus);
+window.addEventListener('online',updateOnlineStatus);
+window.addEventListener('offline',updateOnlineStatus);
 
 // ══════════════════════════════════════════
 // STORAGE
 // ══════════════════════════════════════════
-const DB = (() => {
-  const KEY = 'stride_v3';
-  let d = {};
-  try { const s = localStorage.getItem(KEY); if (s) d = JSON.parse(s); } catch(_) {}
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(_) {} };
-  return {
-    get:  (k, def=null) => k in d ? d[k] : def,
-    set:  (k, v)        => { d[k] = v; save(); },
-    push: (k, v)        => { if (!d[k]) d[k]=[]; d[k].push(v); save(); },
+const DB=(()=>{
+  const KEY='stride_v4';
+  let d={};
+  try{const s=localStorage.getItem(KEY);if(s)d=JSON.parse(s);}catch(_){}
+  const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(d));}catch(_){}};
+  return{
+    get:(k,def=null)=>k in d?d[k]:def,
+    set:(k,v)=>{d[k]=v;save();},
+    push:(k,v)=>{if(!d[k])d[k]=[];d[k].push(v);save();},
+    all:()=>d,
+    load:(obj)=>{d=obj;save();},
   };
 })();
 
 // ══════════════════════════════════════════
 // HAVERSINE
 // ══════════════════════════════════════════
-function haversine(la1, lo1, la2, lo2) {
-  const R = 6371000, r = Math.PI/180;
-  const φ1 = la1*r, φ2 = la2*r;
-  const Δφ = (la2-la1)*r, Δλ = (lo2-lo1)*r;
-  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+function haversine(la1,lo1,la2,lo2){
+  const R=6371000,r=Math.PI/180;
+  const φ1=la1*r,φ2=la2*r,Δφ=(la2-la1)*r,Δλ=(lo2-lo1)*r;
+  const a=Math.sin(Δφ/2)**2+Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
 // ══════════════════════════════════════════
-// CALORIES  (MET-based + elevation bonus)
+// CALORIES
 // ══════════════════════════════════════════
-function calcCal(type, durSec, distKm, elevM) {
-  const w   = DB.get('weight', 70);
-  const MET = type === 'run' ? 11.5 : 3.5;
-  let cal = MET * w * (durSec / 3600);
-  if (distKm > 0) cal += (elevM / distKm) * 0.04 * distKm;
-  return Math.max(0, Math.round(cal));
+function calcCal(type,durSec,distKm,elevM){
+  const w=DB.get('weight',70);
+  const MET=type==='run'?11.5:3.5;
+  let cal=MET*w*(durSec/3600);
+  if(distKm>0)cal+=(elevM/distKm)*0.04*distKm;
+  return Math.max(0,Math.round(cal));
 }
 
 // ══════════════════════════════════════════
 // FORMAT helpers
 // ══════════════════════════════════════════
-function fmtTime(sec) {
-  sec = Math.floor(sec);
-  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
-  return h > 0
-    ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-    : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+function fmtTime(sec){
+  sec=Math.floor(sec);
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+  return h>0?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
-function fmtPace(spkm) {
-  if (!spkm || !isFinite(spkm) || spkm <= 0) return '--:--';
-  return `${Math.floor(spkm/60)}:${String(Math.round(spkm%60)).padStart(2,'0')}`;
+function fmtPace(spkm){
+  if(!spkm||!isFinite(spkm)||spkm<=0)return'--:--';
+  return`${Math.floor(spkm/60)}:${String(Math.round(spkm%60)).padStart(2,'0')}`;
 }
-function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+// Parse mm:ss string to total seconds
+function parseMMSS(str){
+  if(!str)return 0;
+  str=str.trim();
+  const parts=str.split(':');
+  if(parts.length===2){
+    const m=parseInt(parts[0])||0,s=parseInt(parts[1])||0;
+    return m*60+s;
+  }
+  return parseFloat(str)*60||0;
+}
 
 // ══════════════════════════════════════════
 // MODE   'gps' | 'manual'
 // ══════════════════════════════════════════
-let mode = 'manual';
+let mode='manual';
 
-function setMode(m) {
-  mode = m;
-  document.getElementById('mbtn-gps').classList.toggle('sel',    m === 'gps');
-  document.getElementById('mbtn-manual').classList.toggle('sel', m === 'manual');
-  document.getElementById('gps-panel').classList.toggle('hidden',    m !== 'gps');
-  document.getElementById('manual-panel').classList.toggle('hidden', m !== 'manual');
-
-  // Show/hide the live card — remove hidden class in GPS mode
-  const liveCard = document.getElementById('live-card');
-  if (m === 'gps') {
-    liveCard.classList.remove('hidden');
-  } else {
-    // Only hide if workout not actively running
-    if (!W.active && !W.paused) liveCard.classList.add('hidden');
-  }
+function setMode(m){
+  mode=m;
+  document.getElementById('mbtn-gps').classList.toggle('sel',m==='gps');
+  document.getElementById('mbtn-manual').classList.toggle('sel',m==='manual');
+  document.getElementById('gps-panel').classList.toggle('hidden',m!=='gps');
+  document.getElementById('manual-panel').classList.toggle('hidden',m!=='manual');
+  const liveCard=document.getElementById('live-card');
+  if(m==='gps')liveCard.classList.remove('hidden');
+  else if(!W.active&&!W.paused)liveCard.classList.add('hidden');
 }
 
 // ══════════════════════════════════════════
 // GPS PERMISSION
-// GPS itself is a hardware/satellite feature and works fully offline
-// (no WiFi or mobile data needed) once Location is enabled on the device
-// and the page has been granted permission at least once.
 // ══════════════════════════════════════════
-let gpsGranted = false;
+let gpsGranted=false;
 
-function setPill(type, txt) {
-  const el = document.getElementById('gps-pill');
-  el.textContent = txt;
-  el.className = 'gps-pill ' + type;
+function setPill(type,txt){
+  const el=document.getElementById('gps-pill');
+  el.textContent=txt;el.className='gps-pill '+type;
 }
-function setGPSMsg(txt) {
-  document.getElementById('gps-msg').textContent = txt;
-}
+function setGPSMsg(txt){document.getElementById('gps-msg').textContent=txt;}
 
-function askGPS() {
-  if (!navigator.geolocation) {
-    setPill('gps-err', '❌ No GPS');
-    setGPSMsg('Your browser or device does not support GPS.');
-    return;
-  }
-
-  const btn = document.getElementById('gps-req-btn');
-  btn.textContent = '⏳ Waiting for permission…';
-  btn.disabled = true;
-  setGPSMsg('A popup may appear at the top of Chrome. Tap "Allow". This works fully offline — no WiFi or data needed.');
-
-  // This is the call that shows the native Android permission popup
+function askGPS(){
+  if(!navigator.geolocation){setPill('gps-err','❌ No GPS');setGPSMsg('Your browser or device does not support GPS.');return;}
+  const btn=document.getElementById('gps-req-btn');
+  btn.textContent='⏳ Waiting…';btn.disabled=true;
+  setGPSMsg('A popup may appear at the top of Chrome. Tap "Allow". Works fully offline — no WiFi or data needed.');
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      // ✅ GRANTED
-      gpsGranted = true;
-      const acc = Math.round(pos.coords.accuracy);
-      setPill('gps-ok', `✅ GPS ready ±${acc}m`);
-      setGPSMsg('GPS is working — this keeps working with no signal bars, WiFi, or mobile data. You can now start a workout.');
-      btn.textContent = '✅ GPS Granted — Ready!';
-      btn.disabled = false;
-      btn.classList.add('hidden');
-
-      // Enable the Start button
-      document.getElementById('btn-start').disabled = false;
+    (pos)=>{
+      gpsGranted=true;
+      const acc=Math.round(pos.coords.accuracy);
+      setPill('gps-ok',`✅ GPS ready ±${acc}m`);
+      setGPSMsg('GPS working — keeps working offline. You can now start a workout.');
+      btn.textContent='✅ GPS Granted — Ready!';btn.disabled=false;btn.classList.add('hidden');
+      document.getElementById('btn-start').disabled=false;
     },
-    (err) => {
-      // ❌ FAILED
-      btn.textContent = '📡 Try Again';
-      btn.disabled = false;
-      gpsGranted = false;
-
-      if (err.code === 1) {
-        // PERMISSION_DENIED
-        // This happens when the user tapped "Deny" OR when http:// blocks the popup
-        const isHttp = location.protocol === 'http:' && location.hostname !== 'localhost';
-        if (isHttp) {
-          setPill('gps-err', '❌ http:// blocks GPS');
-          setGPSMsg(
-            'Android Chrome blocks GPS on http:// addresses. You have two options:\n\n' +
-            '1. Use Manual mode (enter stats yourself after your run) — works right now.\n\n' +
-            '2. Open the file directly from your phone storage (file:// link) or host it once on https:// to grant permission — after that, GPS keeps working completely offline.'
-          );
-        } else {
-          setPill('gps-err', '❌ Permission denied');
-          setGPSMsg(
-            'You tapped Deny, or Chrome blocked it. Fix: open Chrome menu (⋮) → Settings → Site Settings → Location → find this site → change to Allow. Then tap Try Again. Also make sure Location is ON in your phone\'s system settings.'
-          );
-        }
-      } else if (err.code === 2) {
-        setPill('gps-warn', '⚠️ No signal');
-        setGPSMsg('GPS signal not found yet. Go outside away from tall buildings, then tap Try Again. (No WiFi or data needed — just open sky helps the GPS chip lock on.)');
-      } else {
-        setPill('gps-warn', '⚠️ Timeout');
-        setGPSMsg('GPS timed out. Go outside and tap Try Again.');
-      }
+    (err)=>{
+      btn.textContent='📡 Try Again';btn.disabled=false;gpsGranted=false;
+      if(err.code===1){
+        const isHttp=location.protocol==='http:'&&location.hostname!=='localhost';
+        if(isHttp){setPill('gps-err','❌ http:// blocks GPS');setGPSMsg('Android Chrome blocks GPS on http://. Use Manual mode, or open via file:// or https://.');}
+        else{setPill('gps-err','❌ Permission denied');setGPSMsg('Tapped Deny, or Chrome blocked it. Open Chrome ⋮ → Settings → Site Settings → Location → find this site → Allow. Then tap Try Again.');}
+      }else if(err.code===2){setPill('gps-warn','⚠️ No signal');setGPSMsg('No GPS signal. Go outside away from tall buildings, then tap Try Again.');}
+      else{setPill('gps-warn','⚠️ Timeout');setGPSMsg('GPS timed out. Go outside and tap Try Again.');}
     },
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 }
+
+// ══════════════════════════════════════════
+// CADENCE via DeviceMotion (step counter)
+// ══════════════════════════════════════════
+const CADENCE={
+  stepCount:0,
+  stepTimes:[],
+  lastMag:0,
+  threshold:1.5, // g-force delta
+  cooldown:250,  // ms min between steps
+  lastStep:0,
+  motionHandler:null,
+
+  start(){
+    if(!window.DeviceMotionEvent){return;}
+    this.stepCount=0;this.stepTimes=[];this.lastMag=0;this.lastStep=0;
+    this.motionHandler=(e)=>{
+      const acc=e.accelerationIncludingGravity;
+      if(!acc)return;
+      const mag=Math.sqrt(acc.x**2+acc.y**2+acc.z**2);
+      const delta=Math.abs(mag-this.lastMag);
+      const now=Date.now();
+      if(delta>this.threshold&&now-this.lastStep>this.cooldown){
+        this.stepCount++;
+        this.lastStep=now;
+        this.stepTimes.push(now);
+        // Keep only last 10 seconds of step times
+        const cutoff=now-10000;
+        this.stepTimes=this.stepTimes.filter(t=>t>cutoff);
+        this._updateUI();
+      }
+      this.lastMag=mag;
+    };
+    window.addEventListener('devicemotion',this.motionHandler,{passive:true});
+  },
+
+  stop(){
+    if(this.motionHandler){
+      window.removeEventListener('devicemotion',this.motionHandler);
+      this.motionHandler=null;
+    }
+  },
+
+  _updateUI(){
+    const spm=this.stepTimes.length>=2
+      ? Math.round((this.stepTimes.length/((Date.now()-this.stepTimes[0])/1000))*60)
+      : 0;
+    document.getElementById('cadence-val').textContent=spm||'--';
+    document.getElementById('step-count').textContent=this.stepCount;
+    // Hint color
+    const hint=document.getElementById('cadence-hint');
+    if(spm>0){
+      if(spm<160){hint.textContent=`${spm} spm — try to increase cadence`;hint.style.color='var(--warn)';}
+      else if(spm<=185){hint.textContent=`${spm} spm — great cadence ✓`;hint.style.color='var(--green)';}
+      else{hint.textContent=`${spm} spm — slightly high`;hint.style.color='var(--blue)';}
+    }else{hint.textContent='Target: 170–180 spm';hint.style.color='var(--muted)';}
+  },
+
+  reset(){
+    this.stepCount=0;this.stepTimes=[];this.lastMag=0;this.lastStep=0;
+    document.getElementById('cadence-val').textContent='--';
+    document.getElementById('step-count').textContent='0';
+    document.getElementById('cadence-hint').textContent='Target: 170–180 spm';
+    document.getElementById('cadence-hint').style.color='var(--muted)';
+  }
+};
 
 // ══════════════════════════════════════════
 // WORKOUT STATE
 // ══════════════════════════════════════════
-const W = {
-  active: false, type: 'run',
-  startTime: 0, elapsed: 0,
-  distM: 0, elevUp: 0, elevDown: 0,
-  lastAlt: null, altBuf: [],
-  paceWin: [], lastLat: null, lastLon: null, lastGPSt: null, lastAcc: null,
-  speedKmh: 0, paceSecKm: 0, bestPace: Infinity,
-  paceHistory: [],   // all raw pace samples — for trend bars + avg
-  lapStartM: 0,      // distM at start of current 1km lap
-  lapStartT: 0,      // elapsed sec at start of current 1km lap
-  lapPaceSec: 0,     // completed last-km lap pace (sec/km)
-  fastestKmSec: Infinity, // fastest single completed km this session (sec/km)
-  goalKm: 5, goalOn: true, goalReached: false,
-  timerIv: null, watchId: null,
-  paused: false, pausedAt: 0, totalPaused: 0,
+const W={
+  active:false,type:'run',
+  startTime:0,elapsed:0,
+  distM:0,elevUp:0,elevDown:0,
+  lastAlt:null,altBuf:[],
+  paceWin:[],lastLat:null,lastLon:null,lastGPSt:null,lastAcc:null,
+  speedKmh:0,paceSecKm:0,bestPace:Infinity,
+  paceHistory:[],
+  lapStartM:0,lapStartT:0,lapPaceSec:0,lapCount:0,
+  fastestKmSec:Infinity,
+  route:[],  // NEW: [lat, lon] array for route map
+  goalKm:5,goalOn:true,goalReached:false,
+  timerIv:null,watchId:null,
+  paused:false,pausedAt:0,totalPaused:0,
 };
 
-function startGPSWatch() {
-  if (W.watchId !== null) return;
-  W.watchId = navigator.geolocation.watchPosition(
-    onPos, onPosErr,
-    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-  );
+function startGPSWatch(){
+  if(W.watchId!==null)return;
+  W.watchId=navigator.geolocation.watchPosition(onPos,onPosErr,{enableHighAccuracy:true,timeout:20000,maximumAge:0});
 }
-function stopGPSWatch() {
-  if (W.watchId !== null) { navigator.geolocation.clearWatch(W.watchId); W.watchId = null; }
+function stopGPSWatch(){
+  if(W.watchId!==null){navigator.geolocation.clearWatch(W.watchId);W.watchId=null;}
 }
 
-// Max accuracy (meters) we'll trust at all. Typical phone GPS outdoors is
-// 5-15m; indoors or under cover it can be 50-100m+. Above this, the fix
-// is too noisy to use for distance/pace, so we skip it entirely.
-const GPS_MAX_ACCURACY = 25;
+const GPS_MAX_ACCURACY=25;
+const MAX_HUMAN_SPEED_MS=7;
 
-// A human cannot realistically move faster than this on foot (m/s).
-// ~7 m/s ≈ 25 km/h ≈ a fast sprint. Anything faster is almost always
-// a GPS jump, not real movement, so we discard that sample.
-const MAX_HUMAN_SPEED_MS = 7;
+function onPos(pos){
+  const lat=pos.coords.latitude,lon=pos.coords.longitude,alt=pos.coords.altitude,acc=pos.coords.accuracy,ts=pos.timestamp;
+  setPill(acc<15?'gps-ok':acc<=GPS_MAX_ACCURACY?'gps-warn':'gps-err',
+    acc<15?`✅ GPS ±${Math.round(acc)}m`:acc<=GPS_MAX_ACCURACY?`📡 GPS ±${Math.round(acc)}m`:`⚠️ Weak GPS ±${Math.round(acc)}m`);
 
-function onPos(pos) {
-  const lat  = pos.coords.latitude;
-  const lon  = pos.coords.longitude;
-  const alt  = pos.coords.altitude;
-  const acc  = pos.coords.accuracy;
-  const ts   = pos.timestamp;
+  if(!W.active||W.paused)return;
+  if(acc>GPS_MAX_ACCURACY)return;
 
-  // Update pill
-  setPill(acc < 15 ? 'gps-ok' : acc <= GPS_MAX_ACCURACY ? 'gps-warn' : 'gps-err',
-          acc < 15 ? `✅ GPS ±${Math.round(acc)}m`
-                    : acc <= GPS_MAX_ACCURACY ? `📡 GPS ±${Math.round(acc)}m`
-                    : `⚠️ Weak GPS ±${Math.round(acc)}m`);
-
-  if (!W.active) return;
-  if (W.paused)  return; // don't accumulate distance while paused
-
-  // Reject fixes that are too imprecise to trust — counting them would
-  // just add GPS drift as if it were real movement.
-  if (acc > GPS_MAX_ACCURACY) return;
-
-  // ── DISTANCE ──────────────────────────
-  if (W.lastLat !== null) {
-    const dist  = haversine(W.lastLat, W.lastLon, lat, lon);
-    const dtSec = (ts - W.lastGPSt) / 1000;
-
-    // The two fixes being compared each carry their own error margin.
-    // A real step has to be bigger than that combined margin, or we're
-    // just measuring GPS jitter while standing still.
-    const lastAcc   = W.lastAcc !== null ? W.lastAcc : acc;
-    const noiseFloor = Math.max(3, (acc + lastAcc) * 0.5);
-
-    // Reject samples too close together in time (duplicate/rapid fixes)
-    // or with an implausible implied speed (GPS jump, not real movement).
-    const impliedSpeed = dtSec > 0 ? dist / dtSec : 0;
-
-    if (dtSec > 0.5 && dtSec < 30 && dist > noiseFloor && dist <= 150
-        && impliedSpeed <= MAX_HUMAN_SPEED_MS) {
-
-      W.distM += dist;
-      W.speedKmh = impliedSpeed * 3.6;
-
-      if (W.distM > 10) {
-        const raw = 1000 / impliedSpeed;  // sec per km for this segment
-        W.paceWin.push(raw);
-        if (W.paceWin.length > 8) W.paceWin.shift(); // wider window = smoother, less jumpy
-        W.paceSecKm = W.paceWin.reduce((a,b)=>a+b,0) / W.paceWin.length;
-        if (W.paceSecKm > 30 && W.paceSecKm < W.bestPace) W.bestPace = W.paceSecKm;
-
-        // Store in pace history for trend bars + avg (cap at 60 samples)
-        W.paceHistory.push(W.paceSecKm);
-        if (W.paceHistory.length > 60) W.paceHistory.shift();
-
-        // Lap detection — compute pace of each completed 1km lap, and
-        // remember the fastest one for the session's "fastest 1km" record.
-        if (W.distM - W.lapStartM >= 1000) {
-          const lapSec  = W.elapsed - W.lapStartT;
-          W.lapPaceSec  = lapSec; // time to run 1km = sec/km
-          if (lapSec > 0 && lapSec < W.fastestKmSec) W.fastestKmSec = lapSec;
-          W.lapStartM   = W.distM;
-          W.lapStartT   = W.elapsed;
-        }
-      }
-
-      // Only advance the "last fix" used for distance comparison when we
-      // actually accepted a movement — keeps the noise floor meaningful
-      // instead of resetting on every rejected jitter sample.
-      W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts; W.lastAcc = acc;
-    } else if (dtSec >= 30 || W.lastLat === null) {
-      // Too much time has passed to meaningfully compare — resync position
-      // without counting distance, so we don't accumulate a stale jump.
-      W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts; W.lastAcc = acc;
-    }
-    // else: rejected as noise/jump — keep the previous fix as the reference
-    // point so small genuine movements aren't masked by one bad sample.
-  } else {
-    W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts; W.lastAcc = acc;
+  // Store route point (max 500 points, sampled)
+  if(W.route.length===0||(W.route.length>0&&haversine(W.route[W.route.length-1][0],W.route[W.route.length-1][1],lat,lon)>10)){
+    W.route.push([lat,lon]);
+    if(W.route.length>500)W.route=W.route.filter((_,i)=>i%2===0); // thin by half
   }
 
-  // ── ELEVATION ─────────────────────────
-  // Only trust altitude readings that come with decent horizontal accuracy —
-  // altitude is noisier than lat/lon, so a poor fix here is even less reliable.
-  if (alt !== null && acc <= GPS_MAX_ACCURACY) {
-    W.altBuf.push(alt);
-    if (W.altBuf.length > 5) W.altBuf.shift(); // wider smoothing window
-    const sm = W.altBuf.reduce((a,b)=>a+b,0) / W.altBuf.length;
-    if (W.lastAlt !== null) {
-      const d = sm - W.lastAlt;
-      // Ignore tiny fluctuations under 1m — GPS altitude noise, not real elevation change.
-      if (d > 1)       W.elevUp   += d;
-      else if (d < -1) W.elevDown += -d;
+  if(W.lastLat!==null){
+    const dist=haversine(W.lastLat,W.lastLon,lat,lon);
+    const dtSec=(ts-W.lastGPSt)/1000;
+    const lastAcc=W.lastAcc!==null?W.lastAcc:acc;
+    const noiseFloor=Math.max(3,(acc+lastAcc)*0.5);
+    const impliedSpeed=dtSec>0?dist/dtSec:0;
+
+    if(dtSec>0.5&&dtSec<30&&dist>noiseFloor&&dist<=150&&impliedSpeed<=MAX_HUMAN_SPEED_MS){
+      W.distM+=dist;W.speedKmh=impliedSpeed*3.6;
+      if(W.distM>10){
+        const raw=1000/impliedSpeed;
+        W.paceWin.push(raw);if(W.paceWin.length>8)W.paceWin.shift();
+        W.paceSecKm=W.paceWin.reduce((a,b)=>a+b,0)/W.paceWin.length;
+        if(W.paceSecKm>30&&W.paceSecKm<W.bestPace)W.bestPace=W.paceSecKm;
+        W.paceHistory.push(W.paceSecKm);if(W.paceHistory.length>60)W.paceHistory.shift();
+
+        // Lap detection — fire toast on each completed 1km
+        if(W.distM-W.lapStartM>=1000){
+          const lapSec=W.elapsed-W.lapStartT;
+          W.lapPaceSec=lapSec;
+          W.lapCount++;
+          if(lapSec>0&&lapSec<W.fastestKmSec)W.fastestKmSec=lapSec;
+          W.lapStartM=W.distM;W.lapStartT=W.elapsed;
+          showLapToast(W.lapCount,lapSec);
+        }
+      }
+      W.lastLat=lat;W.lastLon=lon;W.lastGPSt=ts;W.lastAcc=acc;
+    }else if(dtSec>=30||W.lastLat===null){
+      W.lastLat=lat;W.lastLon=lon;W.lastGPSt=ts;W.lastAcc=acc;
     }
-    W.lastAlt = sm;
+  }else{
+    W.lastLat=lat;W.lastLon=lon;W.lastGPSt=ts;W.lastAcc=acc;
+  }
+
+  // Elevation
+  if(alt!==null&&acc<=GPS_MAX_ACCURACY){
+    W.altBuf.push(alt);if(W.altBuf.length>5)W.altBuf.shift();
+    const sm=W.altBuf.reduce((a,b)=>a+b,0)/W.altBuf.length;
+    if(W.lastAlt!==null){const d=sm-W.lastAlt;if(d>1)W.elevUp+=d;else if(d<-1)W.elevDown+=-d;}
+    W.lastAlt=sm;
   }
 
   updateLiveUI();
 
-  // Goal check
-  if (W.goalOn && !W.goalReached && W.distM / 1000 >= W.goalKm) {
-    W.goalReached = true;
-    const lbl = W.goalKm >= 1 ? W.goalKm.toFixed(2)+' km' : (W.goalKm*1000).toFixed(0)+' m';
-    document.getElementById('goal-modal-txt').textContent = `You completed your ${lbl} goal! 🎉`;
+  // Goal check — auto-close modal after 4 seconds so workout isn't interrupted
+  if(W.goalOn&&!W.goalReached&&W.distM/1000>=W.goalKm){
+    W.goalReached=true;
+    const lbl=W.goalKm>=1?W.goalKm.toFixed(2)+' km':(W.goalKm*1000).toFixed(0)+' m';
+    document.getElementById('goal-modal-txt').textContent=`${lbl} goal complete! 🎉 Keep going!`;
     document.getElementById('goal-modal').classList.remove('hidden');
     confetti();
+    setTimeout(()=>closeModal('goal-modal'),4000);
   }
 }
 
-function onPosErr(err) {
-  const msgs = { 1:'GPS denied', 2:'No signal — go outside', 3:'GPS timeout' };
-  setPill('gps-err', '❌ ' + (msgs[err.code]||'GPS error'));
+function onPosErr(err){
+  const msgs={1:'GPS denied',2:'No signal — go outside',3:'GPS timeout'};
+  setPill('gps-err','❌ '+(msgs[err.code]||'GPS error'));
 }
 
-function updateLiveUI() {
-  const km = W.distM / 1000;
+// ── LAP TOAST ──────────────────────────────
+let lapToastTimer=null;
+function showLapToast(lapNum,lapSec){
+  const el=document.getElementById('lap-toast');
+  el.textContent=`🏁 Lap ${lapNum} — ${fmtPace(lapSec)} /km`;
+  el.classList.add('show');
+  if(lapToastTimer)clearTimeout(lapToastTimer);
+  lapToastTimer=setTimeout(()=>el.classList.remove('show'),3500);
+  // Vibrate if supported
+  if(navigator.vibrate)navigator.vibrate([100,50,100]);
+}
 
-  // Basic metrics
-  document.getElementById('hd').textContent   = km.toFixed(2);
-  document.getElementById('hspd').textContent = W.speedKmh.toFixed(1);
-  document.getElementById('heu').textContent  = '+' + Math.round(W.elevUp)   + ' m';
-  document.getElementById('hed').textContent  = '-' + Math.round(W.elevDown) + ' m';
+function updateLiveUI(){
+  const km=W.distM/1000;
+  document.getElementById('hd').textContent=km.toFixed(2);
+  document.getElementById('hspd').textContent=W.speedKmh.toFixed(1);
+  document.getElementById('heu').textContent='+'+Math.round(W.elevUp)+' m';
+  document.getElementById('hed').textContent='-'+Math.round(W.elevDown)+' m';
+  document.getElementById('hp-live').textContent=fmtPace(W.paceSecKm);
+  const avgPaceVal=km>0&&W.elapsed>0?W.elapsed/km:0;
+  document.getElementById('hp-avg').textContent=fmtPace(avgPaceVal);
+  document.getElementById('hp-best').textContent=isFinite(W.bestPace)&&W.bestPace>0?fmtPace(W.bestPace):'--:--';
+  document.getElementById('hlap').textContent=W.lapPaceSec>0?fmtPace(W.lapPaceSec):'--:--';
 
-  // ── PACE: Live (smoothed 5-sample window) ──
-  document.getElementById('hp-live').textContent = fmtPace(W.paceSecKm);
-
-  // ── PACE: Avg (total elapsed / total distance) ──
-  const avgPaceVal = km > 0 && W.elapsed > 0 ? W.elapsed / km : 0;
-  document.getElementById('hp-avg').textContent  = fmtPace(avgPaceVal);
-
-  // ── PACE: Best (fastest smoothed sample ever this session) ──
-  document.getElementById('hp-best').textContent =
-    isFinite(W.bestPace) && W.bestPace > 0 ? fmtPace(W.bestPace) : '--:--';
-
-  // ── PACE: Last completed km lap ──
-  document.getElementById('hlap').textContent =
-    W.lapPaceSec > 0 ? fmtPace(W.lapPaceSec) : '--:--';
-
-  // ── PACE TREND BARS (last up to 20 history samples) ──
-  const bars  = document.getElementById('pace-bars');
-  const hist  = W.paceHistory.slice(-20);
-  if (hist.length > 1) {
-    const minP = Math.min(...hist);
-    const maxP = Math.max(...hist);
-    const range = maxP - minP || 1;
-    bars.innerHTML = hist.map((p, i) => {
-      // Height: faster pace = shorter bar (inverted) — 4px min, 28px max
-      const h   = Math.round(4 + ((p - minP) / range) * 24);
-      // Color: green if at/near best, blue if avg, orange if slowing
-      const rel = (p - minP) / range; // 0 = fastest, 1 = slowest
-      const col = rel < 0.25 ? 'var(--green)' : rel < 0.6 ? 'var(--blue)' : 'var(--warn)';
-      const isLatest = i === hist.length - 1;
-      return `<div style="flex:1;height:${h}px;background:${col};border-radius:3px 3px 0 0;
-                opacity:${isLatest ? 1 : 0.55 + (i/hist.length)*0.45};
-                ${isLatest ? 'outline:1px solid rgba(255,255,255,.3)' : ''}"></div>`;
+  // Pace trend bars — now with numeric label on latest
+  const bars=document.getElementById('pace-bars');
+  const hist=W.paceHistory.slice(-20);
+  if(hist.length>1){
+    const minP=Math.min(...hist),maxP=Math.max(...hist),range=maxP-minP||1;
+    bars.innerHTML=hist.map((p,i)=>{
+      const h=Math.round(4+((p-minP)/range)*24);
+      const rel=(p-minP)/range;
+      const col=rel<0.25?'var(--green)':rel<0.6?'var(--blue)':'var(--warn)';
+      const isLatest=i===hist.length-1;
+      return`<div style="flex:1;height:${h}px;background:${col};border-radius:3px 3px 0 0;opacity:${isLatest?1:0.55+(i/hist.length)*0.45};${isLatest?'outline:1px solid rgba(255,255,255,.3)':''}"></div>`;
     }).join('');
+    // Show latest pace numerically
+    document.getElementById('pace-latest-label').textContent='Latest: '+fmtPace(hist[hist.length-1]);
   }
 
-  // ── GOAL BAR ──
-  if (W.goalOn) {
-    const pct = Math.min(100, (km / W.goalKm) * 100);
-    document.getElementById('gbar').style.width        = pct + '%';
-    document.getElementById('goal-pct').textContent    = Math.round(pct) + '%';
-    document.getElementById('goal-lbl').textContent    = km.toFixed(2) + ' / ' + W.goalKm.toFixed(2) + ' km';
+  // Goal bar
+  if(W.goalOn){
+    const pct=Math.min(100,(km/W.goalKm)*100);
+    document.getElementById('gbar').style.width=pct+'%';
+    document.getElementById('goal-pct').textContent=Math.round(pct)+'%';
+    document.getElementById('goal-lbl').textContent=km.toFixed(2)+' / '+W.goalKm.toFixed(2)+' km';
   }
 }
 
 // ══════════════════════════════════════════
-// START / PAUSE / RESUME / STOP  (GPS mode)
+// START / PAUSE / RESUME / STOP
 // ══════════════════════════════════════════
-
-// Switch which button group is visible
-function showBtns(state) {
-  // state: 'idle' | 'active' | 'paused'
-  document.getElementById('btns-idle').classList.toggle('hidden',   state !== 'idle');
-  const activEl = document.getElementById('btns-active');
-  const pauseEl = document.getElementById('btns-paused');
-  activEl.classList.toggle('hidden', state !== 'active');
-  pauseEl.classList.toggle('hidden', state !== 'paused');
-  activEl.style.display = state === 'active' ? 'grid' : '';
-  pauseEl.style.display = state === 'paused' ? 'grid' : '';
+function showBtns(state){
+  document.getElementById('btns-idle').classList.toggle('hidden',state!=='idle');
+  const activEl=document.getElementById('btns-active');
+  const pauseEl=document.getElementById('btns-paused');
+  activEl.classList.toggle('hidden',state!=='active');
+  pauseEl.classList.toggle('hidden',state!=='paused');
+  activEl.style.display=state==='active'?'grid':'';
+  pauseEl.style.display=state==='paused'?'grid':'';
 }
 
-function startWorkout() {
-  if (!gpsGranted) {
-    setGPSMsg('Grant GPS permission first — tap "Request GPS Permission" above.');
-    return;
-  }
-
-  Object.assign(W, {
-    active:true, paused:false,
-    startTime:Date.now(), elapsed:0,
-    pausedAt:0, totalPaused:0,
-    distM:0, elevUp:0, elevDown:0,
-    lastAlt:null, altBuf:[], paceWin:[],
-    lastLat:null, lastLon:null, lastGPSt:null, lastAcc:null,
-    speedKmh:0, paceSecKm:0, bestPace:Infinity,
-    paceHistory:[], lapStartM:0, lapStartT:0, lapPaceSec:0, fastestKmSec:Infinity,
-    goalReached:false,
-    goalKm: getGoalKm(),
-    goalOn: document.getElementById('tog-goal').classList.contains('on'),
+function startWorkout(){
+  if(!gpsGranted){setGPSMsg('Grant GPS permission first — tap "Request GPS Permission" above.');return;}
+  Object.assign(W,{
+    active:true,paused:false,
+    startTime:Date.now(),elapsed:0,pausedAt:0,totalPaused:0,
+    distM:0,elevUp:0,elevDown:0,lastAlt:null,altBuf:[],paceWin:[],
+    lastLat:null,lastLon:null,lastGPSt:null,lastAcc:null,
+    speedKmh:0,paceSecKm:0,bestPace:Infinity,
+    paceHistory:[],lapStartM:0,lapStartT:0,lapPaceSec:0,lapCount:0,fastestKmSec:Infinity,
+    route:[],
+    goalReached:false,goalKm:getGoalKm(),
+    goalOn:document.getElementById('tog-goal').classList.contains('on'),
   });
-
-  const isRun = W.type === 'run';
-  document.getElementById('home-status').innerHTML =
-    `<span class="sdot on"></span>${isRun ? 'Running' : 'Walking'}…`;
-  document.getElementById('type-badge').textContent = isRun ? '🏃 Run' : '🚶 Walk';
-  document.getElementById('type-badge').className   = 'badge ' + (isRun ? 'bg-g' : 'bg-b');
-  document.getElementById('gbar').style.width = '0%';
-  document.getElementById('goal-lbl').textContent =
-    W.goalOn ? '0.00 / ' + W.goalKm.toFixed(2) + ' km' : 'No goal set';
-
+  const isRun=W.type==='run';
+  document.getElementById('home-status').innerHTML=`<span class="sdot on"></span>${isRun?'Running':'Walking'}…`;
+  document.getElementById('type-badge').textContent=isRun?'🏃 Run':'🚶 Walk';
+  document.getElementById('type-badge').className='badge '+(isRun?'bg-g':'bg-b');
+  document.getElementById('gbar').style.width='0%';
+  document.getElementById('goal-lbl').textContent=W.goalOn?'0.00 / '+W.goalKm.toFixed(2)+' km':'No goal set';
   showBtns('active');
 
-  // Timer — ticks every 100ms for smooth, responsive elapsed-time tracking;
-  // subtracts paused time so it only counts moving time. Display still
-  // shows whole seconds (fmtTime floors), but recalculates on every tick
-  // so the UI never feels like it's lagging behind a 1-second grid.
-  W.timerIv = setInterval(() => {
-    if (W.paused) return;
-    W.elapsed = (Date.now() - W.startTime - W.totalPaused) / 1000;
-    document.getElementById('home-timer').textContent = fmtTime(W.elapsed);
-    document.getElementById('hc').textContent = calcCal(W.type, W.elapsed, W.distM/1000, W.elevUp);
-  }, 100);
+  W.timerIv=setInterval(()=>{
+    if(W.paused)return;
+    W.elapsed=(Date.now()-W.startTime-W.totalPaused)/1000;
+    document.getElementById('home-timer').textContent=fmtTime(W.elapsed);
+    document.getElementById('hc').textContent=calcCal(W.type,W.elapsed,W.distM/1000,W.elevUp);
+  },100);
 
   startGPSWatch();
-  if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
+  CADENCE.start();
+  if('wakeLock' in navigator)navigator.wakeLock.request('screen').catch(()=>{});
 }
 
-function pauseWorkout() {
-  if (!W.active || W.paused) return;
-  W.paused   = true;
-  W.pausedAt = Date.now();
-  stopGPSWatch(); // saves battery
-  document.getElementById('home-status').innerHTML =
-    '<span class="sdot off"></span>⏸ Paused';
+function pauseWorkout(){
+  if(!W.active||W.paused)return;
+  W.paused=true;W.pausedAt=Date.now();
+  stopGPSWatch();
+  CADENCE.stop();
+  document.getElementById('home-status').innerHTML='<span class="sdot off"></span>⏸ Paused';
   showBtns('paused');
 }
 
-function resumeWorkout() {
-  if (!W.active || !W.paused) return;
-  W.paused       = false;
-  W.totalPaused += Date.now() - W.pausedAt;
+function resumeWorkout(){
+  if(!W.active||!W.paused)return;
+  W.paused=false;W.totalPaused+=Date.now()-W.pausedAt;
   startGPSWatch();
-  const isRun = W.type === 'run';
-  document.getElementById('home-status').innerHTML =
-    `<span class="sdot on"></span>${isRun ? 'Running' : 'Walking'}…`;
+  CADENCE.start();
+  const isRun=W.type==='run';
+  document.getElementById('home-status').innerHTML=`<span class="sdot on"></span>${isRun?'Running':'Walking'}…`;
   showBtns('active');
 }
 
-function stopWorkout() {
-  clearInterval(W.timerIv);
-  stopGPSWatch();
-  W.active = false;
-  W.paused = false;
-
-  document.getElementById('home-status').innerHTML =
-    '<span class="sdot off"></span>Not started';
-  document.getElementById('home-timer').textContent = '00:00';
+function stopWorkout(){
+  clearInterval(W.timerIv);stopGPSWatch();CADENCE.stop();CADENCE.reset();
+  W.active=false;W.paused=false;
+  document.getElementById('home-status').innerHTML='<span class="sdot off"></span>Not started';
+  document.getElementById('home-timer').textContent='00:00';
   showBtns('idle');
-
-  const km = W.distM / 1000;
-  if (km < 0.03 || W.elapsed < 10) return; // too short to save
-
+  const km=W.distM/1000;
+  if(km<0.03||W.elapsed<10)return;
   saveRecord({
-    type:       W.type,
-    distKm:     +km.toFixed(3),
-    elapsedSec: Math.round(W.elapsed),
-    cal:        calcCal(W.type, W.elapsed, km, W.elevUp),
-    elevUp:     +W.elevUp.toFixed(1),
-    elevDown:   +W.elevDown.toFixed(1),
-    avgPace:    W.elapsed > 0 && km > 0 ? W.elapsed / km : 0,
-    bestPace:   isFinite(W.bestPace) ? W.bestPace : 0,
-    fastestKm:  isFinite(W.fastestKmSec) ? W.fastestKmSec : 0,
-    goalKm:     W.goalOn ? W.goalKm : null,
-    goalReached:W.goalReached,
-    source:     'gps',
+    type:W.type,distKm:+km.toFixed(3),elapsedSec:Math.round(W.elapsed),
+    cal:calcCal(W.type,W.elapsed,km,W.elevUp),
+    elevUp:+W.elevUp.toFixed(1),elevDown:+W.elevDown.toFixed(1),
+    avgPace:W.elapsed>0&&km>0?W.elapsed/km:0,
+    bestPace:isFinite(W.bestPace)?W.bestPace:0,
+    fastestKm:isFinite(W.fastestKmSec)?W.fastestKmSec:0,
+    steps:CADENCE.stepCount,
+    route:W.route.length>1?W.route:null,
+    goalKm:W.goalOn?W.goalKm:null,goalReached:W.goalReached,source:'gps',
   });
 }
 
-// legacy
-function toggleWorkout() { W.active ? stopWorkout() : startWorkout(); }
-
-
 // ══════════════════════════════════════════
-// MANUAL SAVE
+// TERRAIN
 // ══════════════════════════════════════════
-// ══════════════════════════════════════════
-// TERRAIN → ELEVATION ESTIMATION (grade-percentage model)
-// Grade % = rise/run — the standard way trail and road grades are described.
-// Over 1 km of horizontal distance, elevation gain (m) = grade% × 10.
-//   Flat    →  0%      → 0 m/km     (roads, treadmill, track)
-//   Rolling →  2–5%    → 35 m/km    (typical city/suburban run, midpoint 3.5%)
-//   Hilly   →  8–15%   → 115 m/km   (trail, hill routes, midpoint 11.5%)
-//   Steep   →  20%+    → 220 m/km   (mountain, heavy trail, representative 22%)
-// Descent is estimated as 80% of gain (most routes aren't one-way climbs).
-// ══════════════════════════════════════════
-const TERRAIN = {
-  flat:    { grade: '0%',     gainPerKm: 0,   dropPerKm: 0,   label: 'Flat road / treadmill'  },
-  rolling: { grade: '2–5%',   gainPerKm: 35,  dropPerKm: 28,  label: 'Rolling hills'          },
-  hilly:   { grade: '8–15%',  gainPerKm: 115, dropPerKm: 92,  label: 'Hilly / trail'          },
-  steep:   { grade: '20%+',   gainPerKm: 220, dropPerKm: 176, label: 'Steep / mountains'      },
+const TERRAIN={
+  flat:   {grade:'0%',    gainPerKm:0,  dropPerKm:0,  label:'Flat road / treadmill'},
+  rolling:{grade:'2–5%',  gainPerKm:35, dropPerKm:28, label:'Rolling hills'},
+  hilly:  {grade:'8–15%', gainPerKm:115,dropPerKm:92, label:'Hilly / trail'},
+  steep:  {grade:'20%+',  gainPerKm:220,dropPerKm:176,label:'Steep / mountains'},
 };
+let currentTerrain='flat';
 
-let currentTerrain = 'flat';
-
-function setTerrain(t) {
-  currentTerrain = t;
-  ['flat','rolling','hilly','steep'].forEach(k => {
-    document.getElementById('tb-'+k).classList.toggle('sel', k === t);
-  });
+function setTerrain(t){
+  currentTerrain=t;
+  ['flat','rolling','hilly','steep'].forEach(k=>document.getElementById('tb-'+k).classList.toggle('sel',k===t));
   previewManual();
 }
 
-function getDistKm() {
-  const v = parseFloat(document.getElementById('m-dist').value) || 0;
-  const u = document.getElementById('m-dist-unit').value;
-  return u === 'km' ? v : u === 'mi' ? v * 1.60934 : v / 1000;
+function getDistKm(){
+  const v=parseFloat(document.getElementById('m-dist').value)||0;
+  const u=document.getElementById('m-dist-unit').value;
+  return u==='km'?v:u==='mi'?v*1.60934:v/1000;
 }
 
-function previewManual() {
-  const distKm = getDistKm();
-  const durMin = parseFloat(document.getElementById('m-dur').value) || 0;
-  const prev   = document.getElementById('manual-preview');
-
-  if (distKm <= 0 || durMin <= 0) { prev.style.display = 'none'; return; }
-  prev.style.display = 'block';
-
-  const terrain    = TERRAIN[currentTerrain];
-  const elevUp     = distKm * terrain.gainPerKm;
-  const elapsedSec = durMin * 60;
-  const paceSecKm  = elapsedSec / distKm;
-  const type       = document.getElementById('btn-run').classList.contains('bg-g') ? 'run' : 'walk';
-  const cal        = calcCal(type, elapsedSec, distKm, elevUp);
-
-  document.getElementById('prev-pace').textContent = fmtPace(paceSecKm);
-  document.getElementById('prev-elev').textContent = Math.round(elevUp) + ' m';
-  document.getElementById('prev-cal').textContent  = cal + ' kcal';
+function previewManual(){
+  const distKm=getDistKm(),durMin=parseFloat(document.getElementById('m-dur').value)||0;
+  const prev=document.getElementById('manual-preview');
+  if(distKm<=0||durMin<=0){prev.style.display='none';return;}
+  prev.style.display='block';
+  const terrain=TERRAIN[currentTerrain];
+  const elevUp=distKm*terrain.gainPerKm;
+  const elapsedSec=durMin*60;
+  const paceSecKm=elapsedSec/distKm;
+  const type=document.getElementById('btn-run').classList.contains('bg-g')?'run':'walk';
+  const cal=calcCal(type,elapsedSec,distKm,elevUp);
+  document.getElementById('prev-pace').textContent=fmtPace(paceSecKm);
+  document.getElementById('prev-elev').textContent=Math.round(elevUp)+' m';
+  document.getElementById('prev-cal').textContent=cal+' kcal';
 }
 
-function saveManual() {
-  const distKm = getDistKm();
-  const durMin = parseFloat(document.getElementById('m-dur').value) || 0;
+function saveManual(){
+  const distKm=getDistKm(),durMin=parseFloat(document.getElementById('m-dur').value)||0;
+  if(distKm<=0){alert('Enter a distance.');return;}
+  if(durMin<=0){alert('Enter a duration.');return;}
+  const terrain=TERRAIN[currentTerrain];
+  const elevUp=parseFloat((distKm*terrain.gainPerKm).toFixed(1));
+  const elevDown=parseFloat((distKm*terrain.dropPerKm).toFixed(1));
+  const elapsedSec=durMin*60;
+  const type=document.getElementById('btn-run').classList.contains('bg-g')?'run':'walk';
+  const avgPace=elapsedSec/distKm;
+  const cal=calcCal(type,elapsedSec,distKm,elevUp);
 
-  if (distKm <= 0) { alert('Enter a distance.'); return; }
-  if (durMin <= 0) { alert('Enter a duration.'); return; }
-
-  const terrain    = TERRAIN[currentTerrain];
-  const elevUp     = parseFloat((distKm * terrain.gainPerKm).toFixed(1));
-  const elevDown   = parseFloat((distKm * terrain.dropPerKm).toFixed(1));
-  const elapsedSec = durMin * 60;
-  const type       = document.getElementById('btn-run').classList.contains('bg-g') ? 'run' : 'walk';
-  const avgPace    = elapsedSec / distKm;
-  const cal        = calcCal(type, elapsedSec, distKm, elevUp);
+  // Use selected date or today
+  const dateVal=document.getElementById('m-date').value;
+  const workoutDate=dateVal?new Date(dateVal+'T12:00:00').toISOString():new Date().toISOString();
 
   saveRecord({
-    type, distKm, elapsedSec, cal,
-    elevUp, elevDown,
-    avgPace, bestPace: avgPace,
-    terrain: currentTerrain,
-    goalKm: null, goalReached: false,
-    source: 'manual',
-  });
+    type,distKm,elapsedSec,cal,elevUp,elevDown,
+    avgPace,bestPace:avgPace,terrain:currentTerrain,
+    goalKm:null,goalReached:false,source:'manual',
+  },workoutDate);
 
-  // Clear inputs + reset preview
-  document.getElementById('m-dist').value = '';
-  document.getElementById('m-dur').value  = '';
-  document.getElementById('manual-preview').style.display = 'none';
-
-  const lbl = distKm.toFixed(2)+' km · '+Math.round(durMin)+' min · '+cal+' kcal · ↑'+Math.round(elevUp)+'m';
-  document.getElementById('save-modal-txt').textContent = lbl;
+  document.getElementById('m-dist').value='';
+  document.getElementById('m-dur').value='';
+  document.getElementById('manual-preview').style.display='none';
+  const lbl=distKm.toFixed(2)+' km · '+Math.round(durMin)+' min · '+cal+' kcal · ↑'+Math.round(elevUp)+'m';
+  document.getElementById('save-modal-txt').textContent=lbl;
   document.getElementById('save-modal').classList.remove('hidden');
   confetti();
 }
 
 // ══════════════════════════════════════════
-// SAVE RECORD + ACHIEVEMENTS
+// SAVE RECORD
 // ══════════════════════════════════════════
-function saveRecord(rec) {
-  rec.id   = Date.now();
-  rec.date = new Date().toISOString();
-  DB.push('workouts', rec);
-
-  const stats = updateStats(rec);
-
-  const newAchs = checkAch(rec.distKm, stats.totalDistKm, stats.totalElevM, stats.streak);
+function saveRecord(rec,dateOverride){
+  rec.id=Date.now();
+  rec.date=dateOverride||new Date().toISOString();
+  DB.push('workouts',rec);
+  const stats=updateStats(rec,dateOverride);
+  const newAchs=checkAch(rec.distKm,stats.totalDistKm,stats.totalElevM,stats.streak);
   refreshAll();
-  if (newAchs.length) setTimeout(()=>showAchModal(newAchs[0]), 500);
+  if(newAchs.length)setTimeout(()=>showAchModal(newAchs[0]),500);
+}
+
+function updateStats(rec,dateOverride){
+  const stats=DB.get('stats',{totalDistKm:0,totalCal:0,totalElevM:0,totalSec:0,workouts:0,bestPace:null,streak:0,lastDate:null});
+  stats.totalDistKm+=rec.distKm;
+  stats.totalCal+=rec.cal;
+  stats.totalElevM+=rec.elevUp;
+  stats.totalSec+=rec.elapsedSec;
+  stats.workouts+=1;
+  if(!stats.bestPace||(rec.bestPace>0&&rec.bestPace<stats.bestPace))stats.bestPace=rec.bestPace;
+  // Streak — use workout date for manual entries
+  const workoutDate=dateOverride?new Date(dateOverride).toDateString():new Date().toDateString();
+  if(stats.lastDate!==workoutDate){
+    const lastD=stats.lastDate?new Date(stats.lastDate):null;
+    const workD=dateOverride?new Date(dateOverride):new Date();
+    const diff=lastD?Math.round((workD-lastD)/86400000):999;
+    stats.streak=diff===1?stats.streak+1:1;
+    stats.lastDate=workoutDate;
+  }
+  DB.set('stats',stats);
+  return stats;
 }
 
 // ══════════════════════════════════════════
-// updateStats — recalculates running totals after a workout is saved.
-// Pulls current stats from DB, folds in the new record, persists, and
-// returns the updated stats object so callers (saveRecord, achievements)
-// can act on it without a second DB read.
+// DELETE WORKOUT
 // ══════════════════════════════════════════
-function updateStats(rec) {
-  const stats = DB.get('stats', {
-    totalDistKm:0, totalCal:0, totalElevM:0,
-    totalSec:0, workouts:0, bestPace:null, streak:0, lastDate:null
-  });
-  stats.totalDistKm += rec.distKm;
-  stats.totalCal    += rec.cal;
-  stats.totalElevM  += rec.elevUp;
-  stats.totalSec    += rec.elapsedSec;
-  stats.workouts    += 1;
-  if (!stats.bestPace || (rec.bestPace > 0 && rec.bestPace < stats.bestPace))
-    stats.bestPace = rec.bestPace;
+let pendingDeleteId=null;
 
-  // Streak
-  const today = new Date().toDateString();
-  if (stats.lastDate !== today) {
-    const yest = new Date(Date.now()-86400000).toDateString();
-    stats.streak = stats.lastDate === yest ? stats.streak+1 : 1;
-    stats.lastDate = today;
+function promptDelete(id){
+  pendingDeleteId=id;
+  document.getElementById('del-modal').classList.remove('hidden');
+}
+
+function confirmDelete(){
+  if(pendingDeleteId===null)return;
+  const wkts=DB.get('workouts',[]).filter(w=>w.id!==pendingDeleteId);
+  DB.set('workouts',wkts);
+  // Recalculate stats from scratch
+  const fresh={totalDistKm:0,totalCal:0,totalElevM:0,totalSec:0,workouts:0,bestPace:null,streak:0,lastDate:null};
+  for(const w of wkts){
+    fresh.totalDistKm+=w.distKm;fresh.totalCal+=w.cal;
+    fresh.totalElevM+=w.elevUp||0;fresh.totalSec+=w.elapsedSec;
+    fresh.workouts++;
+    if(!fresh.bestPace||(w.bestPace>0&&w.bestPace<fresh.bestPace))fresh.bestPace=w.bestPace;
   }
-  DB.set('stats', stats);
-  return stats;
+  // Recalculate streak from sorted dates
+  if(wkts.length>0){
+    const dates=[...new Set(wkts.map(w=>new Date(w.date).toDateString()))].sort((a,b)=>new Date(a)-new Date(b));
+    let streak=1,maxStreak=1;
+    for(let i=1;i<dates.length;i++){
+      const diff=(new Date(dates[i])-new Date(dates[i-1]))/86400000;
+      streak=diff===1?streak+1:1;
+      maxStreak=Math.max(maxStreak,streak);
+    }
+    // Current streak
+    const today=new Date().toDateString(),yest=new Date(Date.now()-86400000).toDateString();
+    const lastDate=dates[dates.length-1];
+    fresh.streak=lastDate===today||lastDate===yest?streak:0;
+    fresh.lastDate=lastDate;
+  }
+  DB.set('stats',fresh);
+  pendingDeleteId=null;
+  closeModal('del-modal');
+  refreshAll();
 }
 
 // ══════════════════════════════════════════
 // ACHIEVEMENTS
 // ══════════════════════════════════════════
-const ACH_DIST = [
-  {id:'d100m', icon:'🌱',title:'First Steps',     desc:'100 m completed',          km:0.1   },
-  {id:'d200m', icon:'🐣',title:'Getting Moving',  desc:'200 m completed',          km:0.2   },
-  {id:'d400m', icon:'🏟️',title:'Track Lap',       desc:'One full 400 m lap',       km:0.4   },
-  {id:'d500m', icon:'🌿',title:'Half-K',          desc:'500 m completed',          km:0.5   },
-  {id:'d800m', icon:'🔵',title:'800 m Runner',    desc:'800 m middle distance',    km:0.8   },
-  {id:'d1km',  icon:'🔑',title:'1 Kilometre',     desc:'First full km!',           km:1.0   },
-  {id:'d1200',icon:'📏', title:'1200 m',          desc:'1200 m completed',         km:1.2   },
-  {id:'d1600',icon:'🌀', title:'1600 m / Mile',   desc:'1600 m broken!',           km:1.6   },
-  {id:'d1mi',  icon:'🦅',title:'One Mile',        desc:'1 mile = 1.609 km',        km:1.609 },
-  {id:'d5km',  icon:'⭐',title:'5K Club',         desc:'5 km — welcome!',          km:5     },
-  {id:'d10km', icon:'💫',title:'10K Legend',      desc:'10 km real runner!',       km:10    },
-  {id:'d21km', icon:'🥇',title:'Half Marathoner', desc:'21.097 km completed!',     km:21.097},
-  {id:'d42km', icon:'🏆',title:'Marathoner',      desc:'42.195 km full marathon!', km:42.195},
+const ACH_DIST=[
+  {id:'d100m',icon:'🌱',title:'First Steps',    desc:'100 m completed',         km:0.1  },
+  {id:'d200m',icon:'🐣',title:'Getting Moving', desc:'200 m completed',         km:0.2  },
+  {id:'d400m',icon:'🏟️',title:'Track Lap',      desc:'One full 400 m lap',      km:0.4  },
+  {id:'d500m',icon:'🌿',title:'Half-K',         desc:'500 m completed',         km:0.5  },
+  {id:'d800m',icon:'🔵',title:'800 m Runner',   desc:'800 m middle distance',   km:0.8  },
+  {id:'d1km', icon:'🔑',title:'1 Kilometre',    desc:'First full km!',          km:1.0  },
+  {id:'d1600',icon:'🌀',title:'1600 m / Mile',  desc:'1600 m done!',            km:1.6  },
+  {id:'d1mi', icon:'🦅',title:'One Mile',       desc:'1 mile = 1.609 km',       km:1.609},
+  {id:'d5km', icon:'⭐',title:'5K Club',        desc:'5 km — welcome!',         km:5    },
+  {id:'d10km',icon:'💫',title:'10K Legend',     desc:'10 km — real runner!',    km:10   },
+  {id:'d21km',icon:'🥇',title:'Half Marathoner',desc:'21.097 km completed!',    km:21.097},
+  {id:'d42km',icon:'🏆',title:'Marathoner',     desc:'42.195 km full marathon!',km:42.195},
 ];
-const ACH_ELEV = [
-  {id:'e50',  icon:'⛰️',title:'Hill Climber',  desc:'50 m total climbed',   m:50  },
-  {id:'e100', icon:'🌄',title:'100 m Climber', desc:'100 m — Eiffel Tower', m:100 },
-  {id:'e200', icon:'🗼',title:'Tower Climber', desc:'200 m total',          m:200 },
-  {id:'e500', icon:'🏔️',title:'Mountain Goat', desc:'500 m total!',        m:500 },
-  {id:'e1000',icon:'🌋',title:'Peak Bagger',  desc:'1000 m total climbed!', m:1000},
+const ACH_ELEV=[
+  {id:'e50', icon:'⛰️',title:'Hill Climber', desc:'50 m total climbed',   m:50  },
+  {id:'e100',icon:'🌄',title:'100 m Climber',desc:'100 m — Eiffel Tower', m:100 },
+  {id:'e200',icon:'🗼',title:'Tower Climber',desc:'200 m total',          m:200 },
+  {id:'e500',icon:'🏔️',title:'Mountain Goat',desc:'500 m total!',         m:500 },
+  {id:'e1000',icon:'🌋',title:'Peak Bagger', desc:'1000 m total climbed!',m:1000},
 ];
-const ACH_STREAK = [
-  {id:'s3', icon:'🌤️',title:'3-Day Streak', desc:'Active 3 days in a row', days:3 },
-  {id:'s7', icon:'🔥',title:'Week Warrior', desc:'7-day streak!',           days:7 },
-  {id:'s14',icon:'💪',title:'Fortnight',    desc:'14 days in a row!',       days:14},
-  {id:'s30',icon:'🚀',title:'Monthly Hero', desc:'30 consecutive days!',    days:30},
+const ACH_STREAK=[
+  {id:'s3', icon:'🌤️',title:'3-Day Streak',desc:'Active 3 days in a row',days:3 },
+  {id:'s7', icon:'🔥',title:'Week Warrior',desc:'7-day streak!',          days:7 },
+  {id:'s14',icon:'💪',title:'Fortnight',   desc:'14 days in a row!',      days:14},
+  {id:'s30',icon:'🚀',title:'Monthly Hero',desc:'30 consecutive days!',   days:30},
 ];
 
-function checkAch(workoutKm, totalKm, totalElevM, streak) {
-  const earned = DB.get('achievements', {});
-  const fresh  = [];
-  for (const a of ACH_DIST)   if (!earned[a.id] && workoutKm  >= a.km)   { earned[a.id]=Date.now(); fresh.push(a); }
-  for (const a of ACH_ELEV)   if (!earned[a.id] && totalElevM >= a.m)    { earned[a.id]=Date.now(); fresh.push(a); }
-  for (const a of ACH_STREAK) if (!earned[a.id] && streak     >= a.days) { earned[a.id]=Date.now(); fresh.push(a); }
-  DB.set('achievements', earned);
-  return fresh;
+function checkAch(workoutKm,totalKm,totalElevM,streak){
+  const earned=DB.get('achievements',{});const fresh=[];
+  for(const a of ACH_DIST) if(!earned[a.id]&&workoutKm >=a.km)  {earned[a.id]=Date.now();fresh.push(a);}
+  for(const a of ACH_ELEV) if(!earned[a.id]&&totalElevM>=a.m)   {earned[a.id]=Date.now();fresh.push(a);}
+  for(const a of ACH_STREAK)if(!earned[a.id]&&streak   >=a.days){earned[a.id]=Date.now();fresh.push(a);}
+  DB.set('achievements',earned);return fresh;
 }
-
-function showAchModal(a) {
-  document.getElementById('am-icon').textContent  = a.icon;
-  document.getElementById('am-title').textContent = a.title;
-  document.getElementById('am-desc').textContent  = a.desc;
+function showAchModal(a){
+  document.getElementById('am-icon').textContent=a.icon;
+  document.getElementById('am-title').textContent=a.title;
+  document.getElementById('am-desc').textContent=a.desc;
   document.getElementById('ach-modal').classList.remove('hidden');
 }
 
 // ══════════════════════════════════════════
 // RANK
 // ══════════════════════════════════════════
-function getRank(km, sec) {
-  const score = km*100 - (sec/60)*0.5;
-  if (score >= 500) return {icon:'🏆',label:'S',css:'rank-s'};
-  if (score >= 200) return {icon:'🥇',label:'A',css:'rank-a'};
-  if (score >= 100) return {icon:'🥈',label:'B',css:'rank-b'};
-  if (score >= 40)  return {icon:'🥉',label:'C',css:'rank-c'};
-  return               {icon:'📗',label:'D',css:'rank-d'};
+function getRank(km,sec){
+  const score=km*100-(sec/60)*0.5;
+  if(score>=500)return{icon:'🏆',label:'S',css:'rank-s'};
+  if(score>=200)return{icon:'🥇',label:'A',css:'rank-a'};
+  if(score>=100)return{icon:'🥈',label:'B',css:'rank-b'};
+  if(score>=40) return{icon:'🥉',label:'C',css:'rank-c'};
+  return            {icon:'📗',label:'D',css:'rank-d'};
 }
 
 // ══════════════════════════════════════════
 // RENDER
 // ══════════════════════════════════════════
-function refreshAll() {
-  renderHome();
-  renderSettings();
-  renderAchievements();
-  renderHistory();
+function refreshAll(){
+  renderHome();renderSettings();renderAchievements();renderHistory();
 }
 
-function renderHome() {
-  const wkts  = DB.get('workouts', []);
-  const stats = DB.get('stats', {streak:0});
-  document.getElementById('streak-badge').textContent = `🔥 ${stats.streak} day streak`;
-
-  const el = document.getElementById('recent-list');
-  if (!wkts.length) {
-    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>';
-    return;
-  }
-  el.innerHTML = [...wkts].reverse().slice(0,5).map(w => {
-    const d  = new Date(w.date);
-    const lb = d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric'});
-    const rk = getRank(w.distKm, w.elapsedSec);
-    const src = w.source === 'manual' ? ' ✏️' : ' 📍';
-    return `<div class="wrow">
-      <div class="wico">${w.type==='run'?'🏃':'🚶'}</div>
-      <div class="winfo">
-        <div class="wtitle">${cap(w.type)} · ${w.distKm.toFixed(2)} km${src}</div>
-        <div class="wsub">${lb} · ${fmtTime(w.elapsedSec)} · ${w.cal} kcal</div>
-      </div>
-      <div class="${rk.css}" style="font-size:20px">${rk.icon}</div>
-    </div>`;
+function renderHome(){
+  const wkts=DB.get('workouts',[]);
+  const stats=DB.get('stats',{streak:0});
+  document.getElementById('streak-badge').textContent=`🔥 ${stats.streak} day streak`;
+  const el=document.getElementById('recent-list');
+  if(!wkts.length){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>';return;}
+  el.innerHTML=[...wkts].reverse().slice(0,5).map(w=>{
+    const d=new Date(w.date);
+    const lb=d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric'});
+    const rk=getRank(w.distKm,w.elapsedSec);
+    const src=w.source==='manual'?' ✏️':' 📍';
+    return`<div class="wrow"><div class="wico">${w.type==='run'?'🏃':'🚶'}</div><div class="winfo"><div class="wtitle">${cap(w.type)} · ${w.distKm.toFixed(2)} km${src}</div><div class="wsub">${lb} · ${fmtTime(w.elapsedSec)} · ${w.cal} kcal</div></div><div class="${rk.css}" style="font-size:20px">${rk.icon}</div></div>`;
   }).join('');
 }
 
-// ── NATIVE WEEKLY BAR CHART (no external library, fully offline) ──
-function renderWeeklyChart() {
-  const wkts = DB.get('workouts', []);
-  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const data = new Array(7).fill(0);
-  const now  = new Date();
-  for (const w of wkts) {
-    const diff = Math.floor((now - new Date(w.date))/86400000);
-    if (diff < 7) data[(new Date(w.date).getDay()+6)%7] += w.distKm;
+// ── WEEKLY BAR CHART ──────────────────────
+function renderWeeklyChart(){
+  const wkts=DB.get('workouts',[]);
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const data=new Array(7).fill(0);
+  const now=new Date(); // hoist outside loop
+  for(const w of wkts){
+    const diff=Math.floor((now-new Date(w.date))/86400000);
+    if(diff<7)data[(new Date(w.date).getDay()+6)%7]+=w.distKm;
   }
-  const todayIdx = (now.getDay()+6)%7;
-  const maxV = Math.max(...data, 0.5); // avoid div-by-zero, give some headroom
-
-  const el = document.getElementById('wkchart');
-  el.innerHTML = data.map((v, i) => {
-    const pct = Math.max(2, Math.round((v / maxV) * 100));
-    const valTxt = v > 0 ? v.toFixed(1) : '';
-    return `<div class="bar-col">
-      <div class="bar-val">${valTxt}</div>
-      <div class="bar-fill" style="height:${pct}%"></div>
-      <div class="bar-day${i===todayIdx ? ' today' : ''}">${days[i]}</div>
-    </div>`;
+  const todayIdx=(now.getDay()+6)%7;
+  const maxV=Math.max(...data,0.5);
+  document.getElementById('wkchart').innerHTML=data.map((v,i)=>{
+    const pct=Math.max(2,Math.round((v/maxV)*100));
+    return`<div class="bar-col"><div class="bar-val">${v>0?v.toFixed(1):''}</div><div class="bar-fill" style="height:${pct}%"></div><div class="bar-day${i===todayIdx?' today':''}">${days[i]}</div></div>`;
   }).join('');
 }
 
-function renderSettings() {
-  const stats = DB.get('stats',{totalDistKm:0,totalCal:0,totalElevM:0,workouts:0,bestPace:null,totalSec:0});
-  setText('st-dist', (stats.totalDistKm||0).toFixed(1));
-  setText('st-wkts', stats.workouts||0);
-  setText('st-cal',  stats.totalCal||0);
-  setText('st-elev', Math.round(stats.totalElevM||0));
-  setText('st-bp',   fmtPace(stats.bestPace));
-  const ap = stats.workouts>0 && stats.totalDistKm>0 ? stats.totalSec/stats.totalDistKm : null;
-  setText('st-ap', fmtPace(ap));
-
+function renderSettings(){
+  const stats=DB.get('stats',{totalDistKm:0,totalCal:0,totalElevM:0,workouts:0,bestPace:null,totalSec:0});
+  setText('st-dist',(stats.totalDistKm||0).toFixed(1));
+  setText('st-wkts',stats.workouts||0);
+  setText('st-cal',stats.totalCal||0);
+  setText('st-elev',Math.round(stats.totalElevM||0));
+  setText('st-bp',fmtPace(stats.bestPace));
+  const ap=stats.workouts>0&&stats.totalDistKm>0?stats.totalSec/stats.totalDistKm:null;
+  setText('st-ap',fmtPace(ap));
   renderWeeklyChart();
 }
 
-function renderAchievements() {
-  const earned = DB.get('achievements',{});
-  const stats  = DB.get('stats',{totalDistKm:0,totalElevM:0,streak:0});
-  const wkts   = DB.get('workouts',[]);
-  const maxKm  = wkts.length ? Math.max(...wkts.map(w=>w.distKm)) : 0;
-
-  function row(a, prog, total, unit) {
-    const ok   = !!earned[a.id];
-    const pct  = Math.min(100,(prog/total)*100);
-    const ds   = ok ? new Date(earned[a.id]).toLocaleDateString('en-IN',{month:'short',day:'numeric',year:'numeric'}) : null;
-    return `<div class="ach">
-      <div class="ach-ico ${ok?'e':'l'}">${a.icon}</div>
-      <div style="flex:1">
-        <div class="ach-title">${a.title}</div>
-        <div class="ach-desc">${a.desc}</div>
-        ${ok
-          ? `<div class="ach-date">✓ ${ds}</div>`
-          : `<div style="font-size:11px;color:var(--muted);margin-top:4px">${Math.min(prog,total).toFixed(unit==='km'?2:0)} / ${total} ${unit}</div>
-             <div class="prog-bg"><div class="prog-bar" style="width:${pct}%"></div></div>`}
-      </div>
-    </div>`;
+function renderAchievements(){
+  const earned=DB.get('achievements',{});
+  const stats=DB.get('stats',{totalDistKm:0,totalElevM:0,streak:0});
+  const wkts=DB.get('workouts',[]);
+  const maxKm=wkts.length?Math.max(...wkts.map(w=>w.distKm)):0;
+  function row(a,prog,total,unit){
+    const ok=!!earned[a.id],pct=Math.min(100,(prog/total)*100);
+    const ds=ok?new Date(earned[a.id]).toLocaleDateString('en-IN',{month:'short',day:'numeric',year:'numeric'}):null;
+    return`<div class="ach"><div class="ach-ico ${ok?'e':'l'}">${a.icon}</div><div style="flex:1"><div class="ach-title">${a.title}</div><div class="ach-desc">${a.desc}</div>${ok?`<div class="ach-date">✓ ${ds}</div>`:`<div style="font-size:11px;color:var(--muted);margin-top:4px">${Math.min(prog,total).toFixed(unit==='km'?2:0)} / ${total} ${unit}</div><div class="prog-bg"><div class="prog-bar" style="width:${pct}%"></div></div>`}</div></div>`;
   }
-
-  document.getElementById('ach-dist').innerHTML   = ACH_DIST.map(a=>row(a,maxKm,a.km,'km')).join('');
-  document.getElementById('ach-elev').innerHTML   = ACH_ELEV.map(a=>row(a,stats.totalElevM||0,a.m,'m')).join('');
-  document.getElementById('ach-streak').innerHTML = ACH_STREAK.map(a=>row(a,stats.streak||0,a.days,'days')).join('');
+  document.getElementById('ach-dist').innerHTML=ACH_DIST.map(a=>row(a,maxKm,a.km,'km')).join('');
+  document.getElementById('ach-elev').innerHTML=ACH_ELEV.map(a=>row(a,stats.totalElevM||0,a.m,'m')).join('');
+  document.getElementById('ach-streak').innerHTML=ACH_STREAK.map(a=>row(a,stats.streak||0,a.days,'days')).join('');
 }
 
-// renderHistory — orchestrates the History tab: the workout list and the
-// personal records card. Kept as the single function showPage() calls,
-// while the actual list-building and record-calculating logic each live
-// in their own named function for clarity and reuse.
-function renderHistory() {
-  renderWorkoutHistory();
-  renderPersonalRecords();
-}
+function renderHistory(){renderWorkoutHistory();renderPersonalRecords();}
 
-// renderWorkoutHistory — renders every saved workout (newest first) with
-// date, distance, time, and pace.
-function renderWorkoutHistory() {
-  const wkts = DB.get('workouts',[]);
-  const el   = document.getElementById('hist-list');
-  if (!wkts.length) {
-    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>';
-    return;
-  }
-  el.innerHTML = [...wkts].reverse().map(w=>{
-    const d  = new Date(w.date);
-    const lb = d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    const rk = getRank(w.distKm,w.elapsedSec);
-    const src= w.source==='manual'?' ✏️':' 📍';
-    return `<div class="wrow">
+function renderWorkoutHistory(){
+  const wkts=DB.get('workouts',[]);
+  const el=document.getElementById('hist-list');
+  if(!wkts.length){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>';return;}
+  el.innerHTML=[...wkts].reverse().map(w=>{
+    const d=new Date(w.date);
+    const lb=d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const rk=getRank(w.distKm,w.elapsedSec);
+    const src=w.source==='manual'?' ✏️':' 📍';
+    const stepStr=w.steps?` · 👟 ${w.steps} steps`:'';
+    const routeBtn=w.route&&w.route.length>1?`<button onclick="showRouteModal(${w.id})" style="background:none;border:none;color:var(--blue);font-size:11px;cursor:pointer;padding:0;margin-top:2px">🗺 View route</button>`:'';
+    return`<div class="wrow">
       <div class="wico">${w.type==='run'?'🏃':'🚶'}</div>
       <div class="winfo">
         <div class="wtitle">${cap(w.type)} ${w.distKm.toFixed(2)} km · ${rk.label}${src}</div>
         <div class="wsub">${lb} · ${fmtTime(w.elapsedSec)}</div>
-        <div class="wsub">↑${Math.round(w.elevUp||0)}m · ${w.cal} kcal · ${fmtPace(w.avgPace)}/km</div>
+        <div class="wsub">↑${Math.round(w.elevUp||0)}m · ${w.cal} kcal · ${fmtPace(w.avgPace)}/km${stepStr}</div>
+        ${routeBtn}
       </div>
-      <div class="${rk.css}" style="font-size:20px">${rk.icon}</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div class="${rk.css}" style="font-size:20px">${rk.icon}</div>
+        <button class="del-btn" onclick="promptDelete(${w.id})" title="Delete">🗑️</button>
+      </div>
     </div>`;
   }).join('');
 }
 
-// renderPersonalRecords — calculates and displays best-ever stats across
-// all saved workouts: best pace, fastest 1km, longest workout, most
-// elevation gained in a single session.
-function renderPersonalRecords() {
-  const wkts = DB.get('workouts',[]);
-  const pr   = document.getElementById('pr-card');
-  if (!wkts.length) {
-    pr.innerHTML = '<div style="color:var(--muted);font-size:13px">Complete workouts to see records.</div>';
-    return;
-  }
+// ── ROUTE MAP (inline SVG polyline) ───────
+function showRouteModal(id){
+  const wkts=DB.get('workouts',[]);
+  const w=wkts.find(x=>x.id===id);
+  if(!w||!w.route||w.route.length<2)return;
+  const pts=w.route;
+  const lats=pts.map(p=>p[0]),lons=pts.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats);
+  const minLon=Math.min(...lons),maxLon=Math.max(...lons);
+  const W_=300,H_=180,pad=15;
+  const scaleX=(v)=>pad+(v-minLon)/(maxLon-minLon||1e-6)*(W_-2*pad);
+  const scaleY=(v)=>pad+(maxLat-v)/(maxLat-minLat||1e-6)*(H_-2*pad);
+  const polyline=pts.map(p=>`${scaleX(p[1]).toFixed(1)},${scaleY(p[0]).toFixed(1)}`).join(' ');
+  const start=pts[0],end=pts[pts.length-1];
 
-  const bd = [...wkts].sort((a,b)=>b.distKm-a.distKm)[0];                                  // longest workout
-  const bp = [...wkts].filter(w=>w.bestPace>0).sort((a,b)=>a.bestPace-b.bestPace)[0];       // best instantaneous pace
-  const fk = [...wkts].filter(w=>w.fastestKm>0).sort((a,b)=>a.fastestKm-b.fastestKm)[0];    // fastest completed 1km
-  const bc = [...wkts].sort((a,b)=>b.cal-a.cal)[0];                                         // most kcal burned
-  const be = [...wkts].sort((a,b)=>b.elevUp-a.elevUp)[0];                                   // most elevation gained
+  // Show in a temporary overlay
+  const div=document.createElement('div');
+  div.className='overlay';div.id='route-modal';
+  div.innerHTML=`<div class="modal" style="padding:20px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px">🗺 Route Map</div>
+    <svg viewBox="0 0 ${W_} ${H_}" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:var(--surf2);border-radius:8px">
+      <polyline points="${polyline}" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${scaleX(start[1]).toFixed(1)}" cy="${scaleY(start[0]).toFixed(1)}" r="5" fill="var(--green)"/>
+      <circle cx="${scaleX(end[1]).toFixed(1)}" cy="${scaleY(end[0]).toFixed(1)}" r="5" fill="var(--red)"/>
+    </svg>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">🟢 Start &nbsp;&nbsp; 🔴 Finish · ${pts.length} GPS points</div>
+    <button class="btn btn-s" style="margin-top:14px;padding:11px;font-size:14px" onclick="this.closest('.overlay').remove()">Close</button>
+  </div>`;
+  document.body.appendChild(div);
+}
 
-  pr.innerHTML = [
-    {ico:'🏅',t:'Longest',     v:bd.distKm.toFixed(2)+' km', d:bd.date},
-    bp?{ico:'⚡',t:'Best pace', v:fmtPace(bp.bestPace)+'/km',d:bp.date}:null,
-    fk?{ico:'🎯',t:'Fastest 1km',v:fmtPace(fk.fastestKm)+'/km',d:fk.date}:null,
-    {ico:'🔥',t:'Most kcal',   v:bc.cal+' kcal',             d:bc.date},
-    {ico:'⛰️',t:'Most climb',  v:Math.round(be.elevUp||0)+'m',d:be.date},
+function renderPersonalRecords(){
+  const wkts=DB.get('workouts',[]);
+  const pr=document.getElementById('pr-card');
+  if(!wkts.length){pr.innerHTML='<div style="color:var(--muted);font-size:13px">Complete workouts to see records.</div>';return;}
+  const bd=[...wkts].sort((a,b)=>b.distKm-a.distKm)[0];
+  const bp=[...wkts].filter(w=>w.bestPace>0).sort((a,b)=>a.bestPace-b.bestPace)[0];
+  const fk=[...wkts].filter(w=>w.fastestKm>0).sort((a,b)=>a.fastestKm-b.fastestKm)[0];
+  const bc=[...wkts].sort((a,b)=>b.cal-a.cal)[0];
+  const be=[...wkts].sort((a,b)=>b.elevUp-a.elevUp)[0];
+  pr.innerHTML=[
+    {ico:'🏅',t:'Longest',    v:bd.distKm.toFixed(2)+' km',      d:bd.date},
+    bp?{ico:'⚡',t:'Best pace', v:fmtPace(bp.bestPace)+'/km',     d:bp.date}:null,
+    fk?{ico:'🎯',t:'Fastest 1km',v:fmtPace(fk.fastestKm)+'/km', d:fk.date}:null,
+    {ico:'🔥',t:'Most kcal',  v:bc.cal+' kcal',                  d:bc.date},
+    {ico:'⛰️',t:'Most climb', v:Math.round(be.elevUp||0)+'m',    d:be.date},
   ].filter(Boolean).map((p,i,arr)=>`
     <div class="ach" style="${i===arr.length-1?'border:none;padding-bottom:0':''}">
       <div class="ach-ico e">${p.ico}</div>
-      <div>
-        <div class="ach-title">${p.t}</div>
-        <div class="ach-desc">${p.v} · ${new Date(p.d).toLocaleDateString('en-IN',{month:'short',day:'numeric'})}</div>
-      </div>
+      <div><div class="ach-title">${p.t}</div><div class="ach-desc">${p.v} · ${new Date(p.d).toLocaleDateString('en-IN',{month:'short',day:'numeric'})}</div></div>
     </div>`).join('');
 }
 
-function setText(id, v) { document.getElementById(id).textContent = v; }
+function setText(id,v){document.getElementById(id).textContent=v;}
+
+// ══════════════════════════════════════════
+// EXPORT / IMPORT
+// ══════════════════════════════════════════
+function exportData(){
+  const data=DB.all();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`stride-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();URL.revokeObjectURL(url);
+  document.getElementById('export-status').textContent='✅ Exported successfully';
+  setTimeout(()=>document.getElementById('export-status').textContent='',3000);
+}
+
+function importData(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      const obj=JSON.parse(e.target.result);
+      if(!obj.workouts&&!obj.stats){throw new Error('Invalid Stride backup file');}
+      DB.load(obj);
+      refreshAll();
+      document.getElementById('export-status').textContent='✅ Import successful — '+((obj.workouts||[]).length)+' workouts loaded';
+      setTimeout(()=>document.getElementById('export-status').textContent='',4000);
+    }catch(err){
+      document.getElementById('export-status').textContent='❌ Import failed: '+err.message;
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+// ══════════════════════════════════════════
+// TRAINING PLAN (Jack Daniels VDOT simplified)
+// ══════════════════════════════════════════
+// VDOT table — approximate from Jack Daniels' Running Formula
+// Each entry: [vdot, 5k_sec]
+const VDOT_TABLE=[
+  [30,2400],[32,2280],[34,2160],[36,2060],[38,1970],[40,1890],
+  [42,1820],[44,1760],[46,1700],[48,1650],[50,1600],[52,1555],
+  [54,1512],[56,1472],[58,1434],[60,1398],[62,1364],[64,1332],
+  [66,1302],[68,1273],[70,1246],[72,1220],[74,1196],[76,1173],
+  [78,1150],[80,1129],[85,1081],[90,1038]
+];
+
+function vdotFrom5k(sec5k){
+  // Inverse lookup — interpolate
+  for(let i=0;i<VDOT_TABLE.length-1;i++){
+    const[v1,s1]=VDOT_TABLE[i],[v2,s2]=VDOT_TABLE[i+1];
+    if(sec5k>=s2&&sec5k<=s1){
+      const t=(s1-sec5k)/(s1-s2);
+      return v1+t*(v2-v1);
+    }
+  }
+  if(sec5k>VDOT_TABLE[0][1])return VDOT_TABLE[0][0];
+  return VDOT_TABLE[VDOT_TABLE.length-1][0];
+}
+
+// Training paces as fraction of 5K race pace (Jack Daniels zones)
+// Easy: ~70-74% VO2Max → pace ~33% slower than 5K pace (sec/km)
+// Marathon: ~75-84%
+// Threshold (tempo): ~83-88%
+// Interval (VO2): ~97-100%
+// Repetition: ~105-110%
+function trainingPaces(sec5k){
+  const pacePerKm=sec5k/5; // sec/km at 5K pace
+  return{
+    easy:      {mult:1.38, label:'Easy',       color:'var(--blue)',   emoji:'😌', desc:'Conversational pace. Most of your weekly mileage.'},
+    marathon:  {mult:1.15, label:'Marathon',   color:'var(--green)',  emoji:'🏃', desc:'Comfortable but focused. Builds aerobic threshold.'},
+    threshold: {mult:1.06, label:'Tempo',      color:'var(--warn)',   emoji:'🔥', desc:'Comfortably hard — can speak 3-4 words. 20-40 min max.'},
+    interval:  {mult:0.98, label:'Interval',   color:'var(--red)',    emoji:'⚡', desc:'Hard effort, ~400m–1km repeats. 3-5 min recovery jog.'},
+    rep:       {mult:0.93, label:'Repetition', color:'var(--purple)', emoji:'🚀', desc:'Maximum controlled effort, 200m–400m. Full recovery.'},
+    pacePerKm,
+  };
+}
+
+function calcPlan(){
+  const curStr=document.getElementById('plan-current').value;
+  const tgtStr=document.getElementById('plan-target').value;
+  const curSec=parseMMSS(curStr);
+  const tgtSec=parseMMSS(tgtStr);
+  if(!curSec||curSec<600)return; // sanity: at least 10:00 5K
+
+  const vdotCur=vdotFrom5k(curSec);
+  const info=document.getElementById('plan-vdot');
+  info.textContent=`Current VDOT: ${vdotCur.toFixed(1)} — ${getVO2Label(vdotCur)}`;
+
+  const zones=trainingPaces(curSec);
+  const zonesCard=document.getElementById('pace-zones-card');
+  const zoneOrder=['easy','marathon','threshold','interval','rep'];
+  zonesCard.innerHTML=zoneOrder.map(k=>{
+    const z=zones[k];
+    const p=zones.pacePerKm*z.mult;
+    // Show range ±5%
+    const pLo=p*0.97,pHi=p*1.03;
+    return`<div class="pace-zone" style="background:rgba(255,255,255,.04);border-left:3px solid ${z.color};margin-bottom:8px;padding:10px 12px;border-radius:0 10px 10px 0">
+      <div class="pace-zone-label" style="color:${z.color}">${z.emoji} ${z.label}</div>
+      <div class="pace-zone-val" style="color:${z.color}">${fmtPace(pLo)}–${fmtPace(pHi)} <span style="font-size:12px;font-weight:400;color:var(--muted)">/km</span></div>
+      <div class="pace-zone-desc" style="color:var(--muted)">${z.desc}</div>
+    </div>`;
+  }).join('');
+
+  // Weekly structure
+  const weeklyCard=document.getElementById('weekly-plan-card');
+  const totalKmPerWeek=25; // base suggestion for 5K training
+  weeklyCard.innerHTML=`
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+      Beginner-intermediate 5K block (adjust volume to your current level):
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${[
+        ['Mon','Rest or cross-train','var(--muted)','🧘'],
+        ['Tue',`Easy run 5–6 km @ ${fmtPace(zones.pacePerKm*zones.easy.mult)}/km`,'var(--blue)','😌'],
+        ['Wed',`Tempo 3×10 min @ ${fmtPace(zones.pacePerKm*zones.threshold.mult)}/km, 3 min jog recovery`,'var(--warn)','🔥'],
+        ['Thu','Easy run 4–5 km','var(--blue)','😌'],
+        ['Fri','Rest','var(--muted)','💤'],
+        ['Sat',`Intervals 6×400 m @ ${fmtPace(zones.pacePerKm*zones.interval.mult)}/km, 2 min recovery`,'var(--red)','⚡'],
+        ['Sun',`Long easy run 8–12 km @ ${fmtPace(zones.pacePerKm*zones.easy.mult)}/km`,'var(--green)','🏃'],
+      ].map(([day,desc,color,emoji])=>`
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:8px;background:var(--surf2);border-radius:8px">
+          <div style="font-size:12px;font-weight:700;color:${color};min-width:30px">${day}</div>
+          <div style="font-size:13px;line-height:1.5">${emoji} ${desc}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // Time to goal
+  const timelineCard=document.getElementById('goal-timeline-card');
+  if(tgtSec>0&&tgtSec<curSec){
+    const vdotTarget=vdotFrom5k(tgtSec);
+    const vdotGain=vdotTarget-vdotCur;
+    // Typical VDOT improvement: ~0.5-1 unit/month for beginners, ~0.3-0.5 for intermediate
+    const gainPerMonth=vdotCur<40?0.9:vdotCur<50?0.7:0.5;
+    const monthsNeeded=Math.ceil(vdotGain/gainPerMonth);
+    const paceGain=curSec-tgtSec;
+    timelineCard.innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div class="met"><div class="mval g">${vdotTarget.toFixed(1)}</div><div class="mlab">target VDOT</div></div>
+        <div class="met"><div class="mval b">${(vdotGain).toFixed(1)}</div><div class="mlab">VDOT to gain</div></div>
+        <div class="met"><div class="mval w">${Math.floor(paceGain/60)}:${String(Math.round(paceGain%60)).padStart(2,'0')}</div><div class="mlab">min/km faster</div></div>
+        <div class="met"><div class="mval p">~${monthsNeeded}</div><div class="mlab">months est.</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);background:var(--surf2);border-radius:8px;padding:10px;line-height:1.6">
+        ⚠️ This is an estimate. With consistent training (4× runs/week, no injuries), you might reach your target in <strong style="color:var(--green)">${monthsNeeded}–${monthsNeeded+2} months</strong>. 
+        Current: ${curStr} → Target: ${tgtStr} — a ${(((curSec-tgtSec)/curSec)*100).toFixed(0)}% improvement.
+      </div>`;
+  }else{
+    timelineCard.innerHTML='<div style="color:var(--muted);font-size:13px">Enter a target time faster than your current 5K.</div>';
+  }
+
+  document.getElementById('plan-zones').classList.remove('hidden');
+}
+
+function getVO2Label(vdot){
+  if(vdot<35)return'Beginner';
+  if(vdot<42)return'Recreational';
+  if(vdot<50)return'Intermediate';
+  if(vdot<55)return'Advanced';
+  if(vdot<60)return'Sub-Elite';
+  return'Elite';
+}
 
 // ══════════════════════════════════════════
 // SETTINGS HELPERS
 // ══════════════════════════════════════════
-let currentType = 'run';
-let goalEnabled = true;
+let currentType='run';
+let goalEnabled=true;
 
-function setType(t) {
-  currentType = t; W.type = t;
-  document.getElementById('btn-run').className  = 'badge '+(t==='run'?'bg-g':'bg-gr');
-  document.getElementById('btn-walk').className = 'badge '+(t==='walk'?'bg-b':'bg-gr');
-  if (!W.active) document.getElementById('btn-start').textContent = `Start ${t==='run'?'Run':'Walk'}`;
+function setType(t){
+  currentType=t;W.type=t;
+  document.getElementById('btn-run').className='badge '+(t==='run'?'bg-g':'bg-gr');
+  document.getElementById('btn-walk').className='badge '+(t==='walk'?'bg-b':'bg-gr');
 }
-function toggleGoal() {
-  goalEnabled = !goalEnabled;
-  document.getElementById('tog-goal').className = 'tog'+(goalEnabled?' on':'');
-  document.getElementById('goal-wrap').style.display = goalEnabled?'block':'none';
+function toggleGoal(){
+  goalEnabled=!goalEnabled;
+  document.getElementById('tog-goal').className='tog'+(goalEnabled?' on':'');
+  document.getElementById('goal-wrap').style.display=goalEnabled?'block':'none';
 }
-function goalChanged() {
+function goalChanged(){
   const v=parseFloat(document.getElementById('gval').value)||5;
   const u=document.getElementById('gunit').value;
   const km=u==='km'?v:u==='mi'?v*1.60934:v/1000;
   document.getElementById('goal-hint').textContent='= '+km.toFixed(3)+' km';
 }
 goalChanged();
-function getGoalKm() {
+function getGoalKm(){
   const v=parseFloat(document.getElementById('gval').value)||5;
   const u=document.getElementById('gunit').value;
   return u==='km'?v:u==='mi'?v*1.60934:v/1000;
 }
-function qg(v,u){ document.getElementById('gval').value=v; document.getElementById('gunit').value=u; goalChanged(); }
+function qg(v,u){document.getElementById('gval').value=v;document.getElementById('gunit').value=u;goalChanged();}
 
 // ══════════════════════════════════════════
 // MODALS / NAV
 // ══════════════════════════════════════════
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
 
-const PAGE_MAP={'pg-home':'nb-home','pg-settings':'nb-settings','pg-tests':'nb-tests','pg-ach':'nb-ach','pg-hist':'nb-hist'};
-function showPage(id) {
+const PAGE_MAP={
+  'pg-home':'nb-home','pg-plan':'nb-plan','pg-settings':'nb-settings',
+  'pg-tests':'nb-tests','pg-ach':'nb-ach','pg-hist':'nb-hist'
+};
+function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById(PAGE_MAP[id]).classList.add('active');
-  if(id==='pg-settings') renderSettings();
-  if(id==='pg-ach')      renderAchievements();
-  if(id==='pg-hist')     renderHistory();
-  if(id==='pg-tests')    renderTestHist();
+  if(id==='pg-settings')renderSettings();
+  if(id==='pg-ach')renderAchievements();
+  if(id==='pg-hist')renderHistory();
+  if(id==='pg-tests')renderTestHist();
 }
 
 // ══════════════════════════════════════════
 // FITNESS TESTS ENGINE
 // ══════════════════════════════════════════
-
-// ── Profile helpers ──────────────────────
-function getProfile() {
-  return {
-    age:    parseInt(document.getElementById('t-age').value)      || DB.get('t-age',25),
-    gender: document.getElementById('t-gender').value             || DB.get('t-gender','m'),
-    weight: parseFloat(document.getElementById('t-weight').value) || DB.get('weight',70),
-    height: parseFloat(document.getElementById('t-height').value) || DB.get('t-height',170),
+function getProfile(){
+  return{
+    age:parseInt(document.getElementById('t-age').value)||DB.get('t-age',25),
+    gender:document.getElementById('t-gender').value||DB.get('t-gender','m'),
+    weight:parseFloat(document.getElementById('t-weight').value)||DB.get('weight',70),
+    height:parseFloat(document.getElementById('t-height').value)||DB.get('t-height',170),
   };
 }
-function saveProfile() {
-  const p = getProfile();
-  DB.set('t-age',    p.age);
-  DB.set('t-gender', p.gender);
-  DB.set('weight',   p.weight);
-  DB.set('t-height', p.height);
-  document.getElementById('weight').value = p.weight;
+function saveProfile(){
+  const p=getProfile();
+  DB.set('t-age',p.age);DB.set('t-gender',p.gender);
+  DB.set('weight',p.weight);DB.set('t-height',p.height);
+  document.getElementById('weight').value=p.weight;
 }
 
-// ── VO2 Max classification ────────────────
-// Source: ACSM / Fitness classifications by age & gender
-function vo2Class(vo2, age, gender) {
-  // Simplified 5-tier table averaged across age groups
-  const thM = { poor:35, fair:42, good:48, excellent:55 };
-  const thF = { poor:29, fair:35, good:41, excellent:48 };
-  const th   = gender === 'f' ? thF : thM;
-
-  // Age correction (younger = higher threshold)
-  const ageMod = age < 30 ? 3 : age < 40 ? 1 : age < 50 ? -2 : age < 60 ? -5 : -8;
-  const p = th.poor      + ageMod;
-  const fa= th.fair      + ageMod;
-  const g = th.good      + ageMod;
-  const ex= th.excellent + ageMod;
-
-  if (vo2 < p)  return { label:'Poor',      color:'var(--red)',    emoji:'😓', tip:'Focus on easy runs 3×/week to build aerobic base.' };
-  if (vo2 < fa) return { label:'Fair',       color:'var(--warn)',   emoji:'🙂', tip:'Add one longer run per week to improve endurance.' };
-  if (vo2 < g)  return { label:'Good',       color:'var(--blue)',   emoji:'💪', tip:'Good base — try tempo runs to push higher.' };
-  if (vo2 < ex) return { label:'Excellent',  color:'var(--green)',  emoji:'🔥', tip:'Excellent! Interval training can take you to Elite.' };
-  return              { label:'Elite',      color:'var(--purple)', emoji:'🏆', tip:'Elite level — you are in the top ~5% of your age group.' };
+function vo2Class(vo2,age,gender){
+  const thM={poor:35,fair:42,good:48,excellent:55};
+  const thF={poor:29,fair:35,good:41,excellent:48};
+  const th=gender==='f'?thF:thM;
+  const ageMod=age<30?3:age<40?1:age<50?-2:age<60?-5:-8;
+  const p=th.poor+ageMod,fa=th.fair+ageMod,g=th.good+ageMod,ex=th.excellent+ageMod;
+  if(vo2<p) return{label:'Poor',     color:'var(--red)',    emoji:'😓',tip:'Focus on easy runs 3×/week to build aerobic base.'};
+  if(vo2<fa)return{label:'Fair',     color:'var(--warn)',   emoji:'🙂',tip:'Add one longer run per week to improve endurance.'};
+  if(vo2<g) return{label:'Good',     color:'var(--blue)',   emoji:'💪',tip:'Good base — try tempo runs to push higher.'};
+  if(vo2<ex)return{label:'Excellent',color:'var(--green)',  emoji:'🔥',tip:'Excellent! Interval training can take you to Elite.'};
+  return          {label:'Elite',    color:'var(--purple)', emoji:'🏆',tip:'Elite level — top ~5% of your age group.'};
 }
 
-function showResult(id, vo2, age, gender, extraLines=[]) {
-  const el = document.getElementById(id);
-  el.classList.remove('hidden');
-  const c = vo2Class(vo2, age, gender);
-  const lines = extraLines.map(l=>`<div style="font-size:12px;color:var(--muted)">${l}</div>`).join('');
-  el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <div style="font-size:32px">${c.emoji}</div>
-      <div>
-        <div style="font-size:18px;font-weight:800;color:${c.color}">VO2 Max ≈ ${vo2.toFixed(1)} ml/kg/min</div>
-        <div style="font-size:14px;font-weight:600;color:${c.color}">${c.label}</div>
-      </div>
-    </div>
-    ${lines}
-    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5">
-      💡 ${c.tip}
-    </div>`;
+function showResult(id,vo2,age,gender,extraLines=[]){
+  const el=document.getElementById(id);el.classList.remove('hidden');
+  const c=vo2Class(vo2,age,gender);
+  const lines=extraLines.map(l=>`<div style="font-size:12px;color:var(--muted)">${l}</div>`).join('');
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="font-size:32px">${c.emoji}</div><div><div style="font-size:18px;font-weight:800;color:${c.color}">VO2 Max ≈ ${vo2.toFixed(1)} ml/kg/min</div><div style="font-size:14px;font-weight:600;color:${c.color}">${c.label}</div></div></div>${lines}<div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5">💡 ${c.tip}</div>`;
   return vo2;
 }
 
-// store last computed result so Save knows what to store
-let lastResults = {};
+let lastResults={};
 
 // ── BMI ───────────────────────────────────
-// WHO classification
-function calcBMI() {
-  const { weight, height, age, gender } = getProfile();
-  if (!weight || !height) { alert('Enter weight and height in your profile above.'); return; }
-  const bmi = weight / ((height/100) ** 2);
-  const el  = document.getElementById('res-bmi');
-  el.classList.remove('hidden');
-
-  let label, color, tip;
-  if      (bmi < 18.5) { label='Underweight';      color='var(--blue)';   tip='Consider increasing calorie intake with nutrient-dense foods.'; }
-  else if (bmi < 25)   { label='Healthy Weight';   color='var(--green)';  tip='Great range. Keep up your activity and balanced diet.'; }
-  else if (bmi < 30)   { label='Overweight';       color='var(--warn)';   tip='Adding more cardio and reducing processed foods can help.'; }
-  else if (bmi < 35)   { label='Obese Class I';    color='var(--red)';    tip='Speaking with a doctor or dietitian can help you build a plan.'; }
-  else                  { label='Obese Class II+';  color='var(--red)';    tip='Medical guidance is recommended. Running even 10 min/day helps.'; }
-
-  lastResults.bmi = { bmi: +bmi.toFixed(1), label };
-  el.innerHTML = `
-    <div style="font-size:24px;font-weight:800;color:${color};margin-bottom:4px">${bmi.toFixed(1)}</div>
-    <div style="font-size:15px;font-weight:700;color:${color};margin-bottom:8px">${label}</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px;text-align:center">
-      ${[['<18.5','Underweight','var(--blue)'],['18.5–24.9','Healthy','var(--green)'],['25–29.9','Overweight','var(--warn)'],['30+','Obese','var(--red)']].map(
-        ([v,l,c])=>`<div style="background:rgba(255,255,255,.05);border-radius:6px;padding:5px 2px"><div style="font-size:11px;font-weight:700;color:${c}">${v}</div><div style="font-size:9px;color:var(--muted)">${l}</div></div>`
-      ).join('')}
-    </div>
-    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
+function calcBMI(){
+  const{weight,height,age,gender}=getProfile();
+  if(!weight||!height){alert('Enter weight and height in your profile above.');return;}
+  const bmi=weight/((height/100)**2);
+  const el=document.getElementById('res-bmi');el.classList.remove('hidden');
+  let label,color,tip;
+  if(bmi<18.5){label='Underweight';color='var(--blue)';tip='Consider increasing calorie intake with nutrient-dense foods.';}
+  else if(bmi<25){label='Healthy Weight';color='var(--green)';tip='Great range. Keep up your activity and balanced diet.';}
+  else if(bmi<30){label='Overweight';color='var(--warn)';tip='Adding more cardio and reducing processed foods can help.';}
+  else if(bmi<35){label='Obese Class I';color='var(--red)';tip='Speaking with a doctor or dietitian can help you build a plan.';}
+  else{label='Obese Class II+';color='var(--red)';tip='Medical guidance is recommended. Running even 10 min/day helps.';}
+  lastResults.bmi={bmi:+bmi.toFixed(1),label};
+  el.innerHTML=`<div style="font-size:24px;font-weight:800;color:${color};margin-bottom:4px">${bmi.toFixed(1)}</div><div style="font-size:15px;font-weight:700;color:${color};margin-bottom:8px">${label}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px;text-align:center">${[['<18.5','Underweight','var(--blue)'],['18.5–24.9','Healthy','var(--green)'],['25–29.9','Overweight','var(--warn)'],['30+','Obese','var(--red)']].map(([v,l,c])=>`<div style="background:rgba(255,255,255,.05);border-radius:6px;padding:5px 2px"><div style="font-size:11px;font-weight:700;color:${c}">${v}</div><div style="font-size:9px;color:var(--muted)">${l}</div></div>`).join('')}</div><div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
 }
 
-// ── WAIST-TO-HEIGHT RATIO ─────────────────
-// WHO / Ashwell shape chart: ratio = waist / height
-// < 0.4  → Extremely lean
-// < 0.5  → Healthy
-// < 0.6  → Overweight / increased risk
-// ≥ 0.6  → High risk
-function calcWHR() {
-  const waist = parseFloat(document.getElementById('waist-cm').value);
-  if (!waist) return;
-  const { height } = getProfile();
-  if (!height) { alert('Enter your height in the profile above.'); return; }
-  const ratio = waist / height;
-  const el    = document.getElementById('res-whr');
-  el.classList.remove('hidden');
-
-  let label, color, tip;
-  if      (ratio < 0.4)  { label='Very Lean';         color='var(--blue)';   tip='Very lean. Ensure you are eating enough to fuel your training.'; }
-  else if (ratio < 0.5)  { label='Healthy';            color='var(--green)';  tip='Healthy range. Good cardiovascular risk profile.'; }
-  else if (ratio < 0.53) { label='Acceptable';         color='var(--blue)';   tip='Acceptable. Staying active and eating well maintains this.'; }
-  else if (ratio < 0.58) { label='Increased Risk';     color='var(--warn)';   tip='Some increased risk. More cardio and less processed food helps.'; }
-  else if (ratio < 0.63) { label='High Risk';          color='var(--red)';    tip='High cardiovascular risk. Diet changes and exercise are important.'; }
-  else                    { label='Very High Risk';     color='var(--red)';    tip='Very high risk. Medical guidance strongly recommended.'; }
-
-  lastResults.whr = { ratio: +ratio.toFixed(3), waist, label };
-  el.innerHTML = `
-    <div style="font-size:24px;font-weight:800;color:${color};margin-bottom:4px">${ratio.toFixed(2)}</div>
-    <div style="font-size:15px;font-weight:700;color:${color};margin-bottom:6px">${label}</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Waist ${waist} cm ÷ Height ${getProfile().height} cm · Keep below 0.5</div>
-    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
+// ── WAIST-TO-HEIGHT ───────────────────────
+function calcWHR(){
+  const waist=parseFloat(document.getElementById('waist-cm').value);if(!waist)return;
+  const{height}=getProfile();if(!height){alert('Enter your height in the profile above.');return;}
+  const ratio=waist/height;const el=document.getElementById('res-whr');el.classList.remove('hidden');
+  let label,color,tip;
+  if(ratio<0.4){label='Very Lean';color='var(--blue)';tip='Very lean. Ensure you are eating enough to fuel your training.';}
+  else if(ratio<0.5){label='Healthy';color='var(--green)';tip='Healthy range. Good cardiovascular risk profile.';}
+  else if(ratio<0.53){label='Acceptable';color='var(--blue)';tip='Acceptable. Staying active and eating well maintains this.';}
+  else if(ratio<0.58){label='Increased Risk';color='var(--warn)';tip='Some increased risk. More cardio and less processed food helps.';}
+  else if(ratio<0.63){label='High Risk';color='var(--red)';tip='High cardiovascular risk. Diet changes and exercise are important.';}
+  else{label='Very High Risk';color='var(--red)';tip='Very high risk. Medical guidance strongly recommended.';}
+  lastResults.whr={ratio:+ratio.toFixed(3),waist,label};
+  el.innerHTML=`<div style="font-size:24px;font-weight:800;color:${color};margin-bottom:4px">${ratio.toFixed(2)}</div><div style="font-size:15px;font-weight:700;color:${color};margin-bottom:6px">${label}</div><div style="font-size:12px;color:var(--muted);margin-bottom:8px">Waist ${waist} cm ÷ Height ${getProfile().height} cm · Keep below 0.5</div><div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
 }
 
 // ── RESTING HR HEALTH ─────────────────────
-// AHA / Mayo Clinic classifications
-function calcRHRHealth() {
-  const rhr = parseFloat(document.getElementById('rhr2-val').value);
-  if (!rhr) return;
-  const { age } = getProfile();
-  const el = document.getElementById('res-rhr2');
-  el.classList.remove('hidden');
-
-  let label, color, tip;
-  if      (rhr < 40)  { label='Athletic / Elite';   color='var(--purple)'; tip='Elite level. Typical of serious endurance athletes.'; }
-  else if (rhr < 50)  { label='Excellent';           color='var(--green)';  tip='Excellent cardiovascular fitness. Heart is very efficient.'; }
-  else if (rhr < 60)  { label='Good';                color='var(--green)';  tip='Good heart efficiency. Keep up your aerobic training.'; }
-  else if (rhr < 70)  { label='Normal';              color='var(--blue)';   tip='Normal range. Regular cardio will lower this over time.'; }
-  else if (rhr < 80)  { label='Average';             color='var(--warn)';   tip='Average. 3× cardio sessions per week can improve this.'; }
-  else if (rhr < 100) { label='High-Normal';         color='var(--warn)';   tip='Above average. Reduce stress, caffeine and increase aerobic exercise.'; }
-  else                 { label='Consult a Doctor';   color='var(--red)';    tip='Resting HR above 100 (tachycardia) — see a doctor.'; }
-
-  lastResults.rhr2 = { rhr, label };
-  el.innerHTML = `
-    <div style="font-size:24px;font-weight:800;color:${color};margin-bottom:4px">${rhr} bpm</div>
-    <div style="font-size:15px;font-weight:700;color:${color};margin-bottom:6px">${label}</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px;text-align:center">
-      ${[['<50','Excellent','var(--green)'],['50–69','Good / Normal','var(--blue)'],['70–99','Average–High','var(--warn)']].map(
-        ([v,l,c])=>`<div style="background:rgba(255,255,255,.05);border-radius:6px;padding:5px 2px"><div style="font-size:11px;font-weight:700;color:${c}">${v}</div><div style="font-size:9px;color:var(--muted)">${l}</div></div>`
-      ).join('')}
-    </div>
-    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
+function calcRHRHealth(){
+  const rhr=parseFloat(document.getElementById('rhr2-val').value);if(!rhr)return;
+  const el=document.getElementById('res-rhr2');el.classList.remove('hidden');
+  let label,color,tip;
+  if(rhr<40){label='Athletic / Elite';color='var(--purple)';tip='Elite level. Typical of serious endurance athletes.';}
+  else if(rhr<50){label='Excellent';color='var(--green)';tip='Excellent cardiovascular fitness. Heart is very efficient.';}
+  else if(rhr<60){label='Good';color='var(--green)';tip='Good heart efficiency. Keep up your aerobic training.';}
+  else if(rhr<70){label='Normal';color='var(--blue)';tip='Normal range. Regular cardio will lower this over time.';}
+  else if(rhr<80){label='Average';color='var(--warn)';tip='Average. 3× cardio sessions per week can improve this.';}
+  else if(rhr<100){label='High-Normal';color='var(--warn)';tip='Above average. Reduce stress, caffeine, increase aerobic exercise.';}
+  else{label='Consult a Doctor';color='var(--red)';tip='Resting HR above 100 (tachycardia) — see a doctor.';}
+  lastResults.rhr2={rhr,label};
+  el.innerHTML=`<div style="font-size:24px;font-weight:800;color:${color};margin-bottom:4px">${rhr} bpm</div><div style="font-size:15px;font-weight:700;color:${color};margin-bottom:6px">${label}</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px;text-align:center">${[['<50','Excellent','var(--green)'],['50–69','Good/Normal','var(--blue)'],['70–99','Average–High','var(--warn)']].map(([v,l,c])=>`<div style="background:rgba(255,255,255,.05);border-radius:6px;padding:5px 2px"><div style="font-size:11px;font-weight:700;color:${c}">${v}</div><div style="font-size:9px;color:var(--muted)">${l}</div></div>`).join('')}</div><div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
 }
 
-// ── 1. Cooper 12-Min Test ─────────────────
-// Formula: VO2max = (distM − 504.9) / 44.73   (Cooper, 1968)
-function calcCooper() {
-  const m = parseFloat(document.getElementById('cooper-m').value);
-  if (!m || m < 200) return;
-  document.getElementById('cooper-km').value = (m/1000).toFixed(2);
-  const { age, gender } = getProfile();
-  const vo2 = (m - 504.9) / 44.73;
-  const pace = fmtPace(720 / (m/1000)); // 12 min for that distance
-  lastResults.cooper = { vo2, distM: m };
-  showResult('res-cooper', vo2, age, gender, [`Distance: ${m} m`, `Equivalent pace: ${pace} /km`]);
+// ── COOPER ───────────────────────────────
+function calcCooper(){
+  const m=parseFloat(document.getElementById('cooper-m').value);if(!m||m<200)return;
+  document.getElementById('cooper-km').value=(m/1000).toFixed(2);
+  const{age,gender}=getProfile();
+  const vo2=(m-504.9)/44.73;
+  const pace=fmtPace(720/(m/1000));
+  lastResults.cooper={vo2,distM:m};
+  showResult('res-cooper',vo2,age,gender,[`Distance: ${m} m`,`Equivalent pace: ${pace} /km`]);
 }
-function calcCooperKm() {
-  const km = parseFloat(document.getElementById('cooper-km').value);
-  if (!km || km < 0.2) return;
-  document.getElementById('cooper-m').value = Math.round(km * 1000);
-  calcCooper();
+function calcCooperKm(){
+  const km=parseFloat(document.getElementById('cooper-km').value);if(!km||km<0.2)return;
+  document.getElementById('cooper-m').value=Math.round(km*1000);calcCooper();
 }
 
-// ── 2. Resting HR (Uth–Sørensen formula) ─
-// Formula: VO2max = 15 × (HRmax / HRrest)
-function calcRHR() {
-  const rhr = parseFloat(document.getElementById('rhr-val').value);
-  const mhrInput = parseFloat(document.getElementById('mhr-val').value);
-  if (!rhr || rhr < 20) return;
-  const { age, gender } = getProfile();
-  const mhr = mhrInput || (220 - age);
-  const vo2 = 15 * (mhr / rhr);
-  lastResults.rhr = { vo2, rhr, mhr };
-  showResult('res-rhr', vo2, age, gender, [
+// ── VO2 via Resting HR (Uth–Sørensen) ────
+// Updated to support both Tanaka (208-0.7×age) and Fox (220-age) max HR formulas
+function calcRHR(){
+  const rhr=parseFloat(document.getElementById('rhr-val').value);if(!rhr||rhr<20)return;
+  const mhrInput=parseFloat(document.getElementById('mhr-val').value);
+  const{age,gender}=getProfile();
+  const formula=document.getElementById('mhr-formula').value;
+  const mhr=mhrInput||(formula==='tanaka'?208-0.7*age:220-age);
+  const vo2=15*(mhr/rhr);
+  lastResults.rhr={vo2,rhr,mhr};
+  showResult('res-rhr',vo2,age,gender,[
     `Resting HR: ${rhr} bpm`,
-    `Max HR used: ${mhr} bpm ${mhrInput ? '(entered)' : '(estimated: 220 − age)'}`,
+    `Max HR used: ${mhr.toFixed(0)} bpm ${mhrInput?'(entered)':`(${formula==='tanaka'?'Tanaka: 208−0.7×age':'Fox: 220−age'})`}`,
     `HRmax / HRrest ratio: ${(mhr/rhr).toFixed(2)}`,
   ]);
 }
 
-// ── 3. Rockport Walk Test ─────────────────
-// Formula (George et al., 1993):
-// VO2max = 132.853 − (0.0769 × weightLb) − (0.3877 × age) + (6.315 × genderM)
-//          − (3.2649 × timeMin) − (0.1565 × finishHR)
-function calcWalk() {
-  const timeMin = parseFloat(document.getElementById('walk-min').value);
-  const hr      = parseFloat(document.getElementById('walk-hr').value);
-  if (!timeMin || !hr) return;
-  const { age, gender, weight } = getProfile();
-  const weightLb = weight * 2.20462;
-  const gM = gender === 'm' ? 1 : 0;
-  const vo2 = 132.853 - (0.0769*weightLb) - (0.3877*age) + (6.315*gM) - (3.2649*timeMin) - (0.1565*hr);
-  lastResults.walk = { vo2, timeMin, hr };
-  const min = Math.floor(timeMin); const sec = Math.round((timeMin-min)*60);
-  showResult('res-walk', vo2, age, gender, [
-    `Time: ${min}:${String(sec).padStart(2,'0')} (${timeMin.toFixed(1)} min)`,
-    `Finish HR: ${hr} bpm`,
-  ]);
+// ── ROCKPORT WALK ─────────────────────────
+function calcWalk(){
+  const timeMin=parseFloat(document.getElementById('walk-min').value);
+  const hr=parseFloat(document.getElementById('walk-hr').value);
+  if(!timeMin||!hr)return;
+  const{age,gender,weight}=getProfile();
+  const weightLb=weight*2.20462,gM=gender==='m'?1:0;
+  const vo2=132.853-(0.0769*weightLb)-(0.3877*age)+(6.315*gM)-(3.2649*timeMin)-(0.1565*hr);
+  lastResults.walk={vo2,timeMin,hr};
+  const min=Math.floor(timeMin),sec=Math.round((timeMin-min)*60);
+  showResult('res-walk',vo2,age,gender,[`Time: ${min}:${String(sec).padStart(2,'0')}`,`Finish HR: ${hr} bpm`]);
 }
 
-// ── 6. Sit & Reach ────────────────────────
-// Classification: ACSM standards (cm past toes)
-function calcReach() {
-  const cm = parseFloat(document.getElementById('reach-cm').value);
-  if (isNaN(cm)) return;
-  const { age, gender } = getProfile();
-  const el = document.getElementById('res-reach');
-  el.classList.remove('hidden');
-
-  // ACSM flexibility norms (cm past toes, averaged male/female)
-  let label, color, tip;
-  if (gender === 'm') {
-    if      (cm < -8)  { label='Very Poor';  color='var(--red)';    tip='Yoga or daily hamstring stretching needed.'; }
-    else if (cm < 0)   { label='Poor';       color='var(--warn)';   tip='Stretch hamstrings and lower back daily.'; }
-    else if (cm < 10)  { label='Fair';       color='var(--blue)';   tip='Good start — add hip flexor stretches.'; }
-    else if (cm < 20)  { label='Good';       color='var(--green)';  tip='Good flexibility — maintain with yoga or stretching.'; }
-    else               { label='Excellent';  color='var(--purple)'; tip='Excellent flexibility for a runner!'; }
-  } else {
-    if      (cm < -5)  { label='Very Poor';  color='var(--red)';    tip='Yoga or daily hamstring stretching needed.'; }
-    else if (cm < 5)   { label='Poor';       color='var(--warn)';   tip='Stretch hamstrings and lower back daily.'; }
-    else if (cm < 15)  { label='Fair';       color='var(--blue)';   tip='Good start — add hip flexor stretches.'; }
-    else if (cm < 25)  { label='Good';       color='var(--green)';  tip='Good flexibility — maintain with yoga.'; }
-    else               { label='Excellent';  color='var(--purple)'; tip='Excellent flexibility for a runner!'; }
+// ── SIT & REACH ───────────────────────────
+function calcReach(){
+  const cm=parseFloat(document.getElementById('reach-cm').value);if(isNaN(cm))return;
+  const{age,gender}=getProfile();
+  const el=document.getElementById('res-reach');el.classList.remove('hidden');
+  let label,color,tip;
+  // Continuous age-adjusted thresholds (avoid step jump at 30)
+  const ageAdj=Math.max(0,(age-20)*0.15); // flexibility decreases ~0.15cm/year from 20
+  if(gender==='m'){
+    const base=[-8,0,10,20];const adj=base.map(v=>v-ageAdj);
+    if(cm<adj[0]){label='Very Poor';color='var(--red)';tip='Yoga or daily hamstring stretching needed.';}
+    else if(cm<adj[1]){label='Poor';color='var(--warn)';tip='Stretch hamstrings and lower back daily.';}
+    else if(cm<adj[2]){label='Fair';color='var(--blue)';tip='Good start — add hip flexor stretches.';}
+    else if(cm<adj[3]){label='Good';color='var(--green)';tip='Good flexibility — maintain with yoga or stretching.';}
+    else{label='Excellent';color='var(--purple)';tip='Excellent flexibility for a runner!';}
+  }else{
+    const base=[-5,5,15,25];const adj=base.map(v=>v-ageAdj);
+    if(cm<adj[0]){label='Very Poor';color='var(--red)';tip='Yoga or daily hamstring stretching needed.';}
+    else if(cm<adj[1]){label='Poor';color='var(--warn)';tip='Stretch hamstrings and lower back daily.';}
+    else if(cm<adj[2]){label='Fair';color='var(--blue)';tip='Good start — add hip flexor stretches.';}
+    else if(cm<adj[3]){label='Good';color='var(--green)';tip='Good flexibility — maintain with yoga.';}
+    else{label='Excellent';color='var(--purple)';tip='Excellent flexibility for a runner!';}
   }
-
-  const sign = cm >= 0 ? '+' : '';
-  lastResults.reach = { cm, label };
-  el.innerHTML = `
-    <div style="font-size:18px;font-weight:800;color:${color};margin-bottom:6px">${sign}${cm} cm — ${label}</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">ACSM flexibility norms · Age ${age} · ${gender==='m'?'Male':'Female'}</div>
-    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
+  const sign=cm>=0?'+':'';
+  lastResults.reach={cm,label};
+  el.innerHTML=`<div style="font-size:18px;font-weight:800;color:${color};margin-bottom:6px">${sign}${cm} cm — ${label}</div><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Age-adjusted ACSM norms · Age ${age} · ${gender==='m'?'Male':'Female'}</div><div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
 }
 
-// ── 7. Push-Up Test ───────────────────────
-// ACSM normative data by age & gender
-function calcPushup() {
-  const n = parseInt(document.getElementById('pushup-n').value);
-  if (!n || n < 0) return;
-  const { age, gender } = getProfile();
-  const el = document.getElementById('res-pushup');
-  el.classList.remove('hidden');
-
-  // ACSM push-up norms (full push-up, both genders)
-  // [poor, fair, good, excellent] thresholds by age bracket
-  const normsM = {
-    17: [17,22,29,36], 30: [13,18,24,30], 40: [11,15,20,25],
-    50: [9,12,17,21],  60: [6,10,14,18],  99: [5,8,12,15]
-  };
-  const normsF = {
-    17: [9,13,20,26],  30: [8,12,17,23],  40: [6,10,14,19],
-    50: [4,7,11,15],   60: [3,6,9,12],    99: [2,4,7,10]
-  };
-  const norms = gender === 'm' ? normsM : normsF;
-  const bracket = Object.keys(norms).find(k => age <= parseInt(k));
-  const [poor, fair, good, ex] = norms[bracket] || [10,15,20,25];
-
-  let label, color, tip;
-  if      (n <= poor) { label='Poor';      color='var(--red)';    tip='Add push-up practice 3×/week. Start with knee push-ups if needed.'; }
-  else if (n <= fair) { label='Fair';      color='var(--warn)';   tip='Solid foundation — push toward Good with consistent training.'; }
-  else if (n <= good) { label='Good';      color='var(--blue)';   tip='Good upper body endurance. Add variations (decline, wide-grip).'; }
-  else if (n <= ex)   { label='Excellent'; color='var(--green)';  tip='Excellent! Try weighted push-ups or one-arm variations.'; }
-  else                { label='Elite';     color='var(--purple)'; tip='Elite push-up endurance — top of your age group!'; }
-
-  lastResults.pushup = { n, label };
-  el.innerHTML = `
-    <div style="font-size:18px;font-weight:800;color:${color};margin-bottom:6px">${n} reps — ${label}</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">ACSM norms · Age ${age} · ${gender==='m'?'Male':'Female'}</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px;text-align:center">
-      ${[['Poor',poor,'var(--red)'],['Fair',fair,'var(--warn)'],['Good',good,'var(--blue)'],['Excellent',ex,'var(--green)']].map(
-        ([l,v,c])=>`<div style="background:rgba(255,255,255,.05);border-radius:6px;padding:5px 2px"><div style="font-size:13px;font-weight:700;color:${c}">${v}</div><div style="font-size:10px;color:var(--muted)">${l}</div></div>`
-      ).join('')}
-    </div>
-    <div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
+// ── PUSH-UP ───────────────────────────────
+function calcPushup(){
+  const n=parseInt(document.getElementById('pushup-n').value);if(!n||n<0)return;
+  const{age,gender}=getProfile();const el=document.getElementById('res-pushup');el.classList.remove('hidden');
+  const normsM={17:[17,22,29,36],30:[13,18,24,30],40:[11,15,20,25],50:[9,12,17,21],60:[6,10,14,18],99:[5,8,12,15]};
+  const normsF={17:[9,13,20,26],30:[8,12,17,23],40:[6,10,14,19],50:[4,7,11,15],60:[3,6,9,12],99:[2,4,7,10]};
+  const norms=gender==='m'?normsM:normsF;
+  const bracket=Object.keys(norms).find(k=>age<=parseInt(k));
+  const[poor,fair,good,ex]=norms[bracket]||[10,15,20,25];
+  let label,color,tip;
+  if(n<=poor){label='Poor';color='var(--red)';tip='Add push-up practice 3×/week. Start with knee push-ups if needed.';}
+  else if(n<=fair){label='Fair';color='var(--warn)';tip='Solid foundation — push toward Good with consistent training.';}
+  else if(n<=good){label='Good';color='var(--blue)';tip='Good upper body endurance. Add variations (decline, wide-grip).';}
+  else if(n<=ex){label='Excellent';color='var(--green)';tip='Excellent! Try weighted push-ups or one-arm variations.';}
+  else{label='Elite';color='var(--purple)';tip='Elite push-up endurance — top of your age group!';}
+  lastResults.pushup={n,label};
+  el.innerHTML=`<div style="font-size:18px;font-weight:800;color:${color};margin-bottom:6px">${n} reps — ${label}</div><div style="font-size:12px;color:var(--muted);margin-bottom:8px">ACSM norms · Age ${age} · ${gender==='m'?'Male':'Female'}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px;text-align:center">${[['Poor',poor,'var(--red)'],['Fair',fair,'var(--warn)'],['Good',good,'var(--blue)'],['Excellent',ex,'var(--green)']].map(([l,v,c])=>`<div style="background:rgba(255,255,255,.05);border-radius:6px;padding:5px 2px"><div style="font-size:13px;font-weight:700;color:${c}">${v}</div><div style="font-size:10px;color:var(--muted)">${l}</div></div>`).join('')}</div><div style="font-size:12px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.5">💡 ${tip}</div>`;
 }
 
-// ── SAVE TEST RESULT ──────────────────────
-function saveTest(type) {
-  const res = lastResults[type];
-  if (!res) { alert('Calculate a result first.'); return; }
-  const profile = getProfile();
-  const record = {
-    id: Date.now(),
-    date: new Date().toISOString(),
-    type, profile,
-    ...res,
-  };
-  DB.push('testResults', record);
-  renderTestHist();
-  confetti();
-  alert('Result saved! ✅');
+// ── SAVE TEST ─────────────────────────────
+function saveTest(type){
+  const res=lastResults[type];
+  if(!res){alert('Calculate a result first.');return;}
+  const profile=getProfile();
+  DB.push('testResults',{id:Date.now(),date:new Date().toISOString(),type,profile,...res});
+  renderTestHist();confetti();alert('Result saved! ✅');
 }
 
 // ── TEST HISTORY ──────────────────────────
-const TEST_META = {
-  bmi:    { icon:'⚖️', name:'BMI',                   val: r => `${r.bmi} — ${r.label}` },
-  whr:    { icon:'📐', name:'Waist-to-Height Ratio',  val: r => `${r.ratio} (waist ${r.waist} cm) — ${r.label}` },
-  cooper: { icon:'🫁', name:'VO2 Max (Cooper Run)',   val: r => `${r.vo2.toFixed(1)} ml/kg/min · ${r.distM} m` },
-  rhr:    { icon:'❤️', name:'VO2 Max (Resting HR)',   val: r => `${r.vo2.toFixed(1)} ml/kg/min · RHR ${r.rhr} bpm` },
-  walk:   { icon:'🚶', name:'Aerobic Fitness (Walk)', val: r => `${r.vo2.toFixed(1)} ml/kg/min · ${r.timeMin?.toFixed(1)} min` },
-  rhr2:   { icon:'💓', name:'Resting Heart Rate',     val: r => `${r.rhr} bpm — ${r.label}` },
-  pushup: { icon:'💪', name:'Muscular Endurance',     val: r => `${r.n} push-ups — ${r.label}` },
-  reach:  { icon:'🧘', name:'Lower Body Flexibility', val: r => `${r.cm >= 0?'+':''}${r.cm} cm — ${r.label}` },
+const TEST_META={
+  bmi:   {icon:'⚖️',name:'BMI',                  val:r=>`${r.bmi} — ${r.label}`},
+  whr:   {icon:'📐',name:'Waist-to-Height Ratio', val:r=>`${r.ratio} (waist ${r.waist} cm) — ${r.label}`},
+  cooper:{icon:'🫁',name:'VO2 Max (Cooper Run)',  val:r=>`${r.vo2.toFixed(1)} ml/kg/min · ${r.distM} m`},
+  rhr:   {icon:'❤️',name:'VO2 Max (Resting HR)', val:r=>`${r.vo2.toFixed(1)} ml/kg/min · RHR ${r.rhr} bpm`},
+  walk:  {icon:'🚶',name:'Aerobic Fitness (Walk)',val:r=>`${r.vo2.toFixed(1)} ml/kg/min · ${r.timeMin?.toFixed(1)} min`},
+  rhr2:  {icon:'💓',name:'Resting Heart Rate',    val:r=>`${r.rhr} bpm — ${r.label}`},
+  pushup:{icon:'💪',name:'Muscular Endurance',    val:r=>`${r.n} push-ups — ${r.label}`},
+  reach: {icon:'🧘',name:'Lower Body Flexibility',val:r=>`${r.cm>=0?'+':''}${r.cm} cm — ${r.label}`},
 };
 
-function renderTestHist() {
-  const recs = DB.get('testResults', []);
-  const el   = document.getElementById('test-hist');
-  if (!recs.length) {
-    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:14px 0;font-size:14px">No tests saved yet</div>';
-    return;
-  }
-  el.innerHTML = [...recs].reverse().map(r => {
-    const m   = TEST_META[r.type] || { icon:'📊', name:r.type, val:()=>'' };
-    const d   = new Date(r.date);
-    const lbl = d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric'});
-    return `<div class="wrow">
-      <div class="wico">${m.icon}</div>
-      <div class="winfo">
-        <div class="wtitle">${m.name}</div>
-        <div class="wsub">${m.val(r)}</div>
-        <div class="wsub">${lbl} · Age ${r.profile?.age||'?'} · ${r.profile?.gender==='f'?'Female':'Male'}</div>
-      </div>
-    </div>`;
+function renderTestHist(){
+  const recs=DB.get('testResults',[]);const el=document.getElementById('test-hist');
+  if(!recs.length){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:14px 0;font-size:14px">No tests saved yet</div>';return;}
+  el.innerHTML=[...recs].reverse().map(r=>{
+    const m=TEST_META[r.type]||{icon:'📊',name:r.type,val:()=>''};
+    const d=new Date(r.date);
+    const lbl=d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric'});
+    return`<div class="wrow"><div class="wico">${m.icon}</div><div class="winfo"><div class="wtitle">${m.name}</div><div class="wsub">${m.val(r)}</div><div class="wsub">${lbl} · Age ${r.profile?.age||'?'} · ${r.profile?.gender==='f'?'Female':'Male'}</div></div></div>`;
   }).join('');
 }
 
-// ── LOAD PROFILE ON PAGE OPEN ─────────────
-function loadProfile() {
-  const age = DB.get('t-age', 25);
-  const gen = DB.get('t-gender', 'm');
-  const wt  = DB.get('weight', 70);
-  document.getElementById('t-age').value    = age;
-  document.getElementById('t-gender').value = gen;
-  document.getElementById('t-weight').value = wt;
+function loadProfile(){
+  document.getElementById('t-age').value=DB.get('t-age',25);
+  document.getElementById('t-gender').value=DB.get('t-gender','m');
+  document.getElementById('t-weight').value=DB.get('weight',70);
 }
 
 // ══════════════════════════════════════════
 // CONFETTI
 // ══════════════════════════════════════════
-function confetti() {
-  const c=document.createElement('div'); c.className='conf'; document.body.appendChild(c);
+function confetti(){
+  const c=document.createElement('div');c.className='conf';document.body.appendChild(c);
   const cols=['#00e5a0','#4a9eff','#f5a623','#ff6bab','#8b6dff','#fff'];
   for(let i=0;i<45;i++){
-    const p=document.createElement('div'); p.className='cp';
-    p.style.cssText=`left:${5+Math.random()*90}%;top:-12px;background:${cols[i%6]};
-      animation-delay:${Math.random()*.6}s;animation-duration:${1.6+Math.random()*.8}s;
-      transform:scale(${.6+Math.random()*.8});border-radius:${Math.random()>.5?'50%':'3px'}`;
+    const p=document.createElement('div');p.className='cp';
+    p.style.cssText=`left:${5+Math.random()*90}%;top:-12px;background:${cols[i%6]};animation-delay:${Math.random()*.6}s;animation-duration:${1.6+Math.random()*.8}s;transform:scale(${.6+Math.random()*.8});border-radius:${Math.random()>.5?'50%':'3px'}`;
     c.appendChild(p);
   }
   setTimeout(()=>c.remove(),3200);
 }
 
 // ══════════════════════════════════════════
-// loadAppState — single entry point that loads everything persisted in DB
-// (workouts, profile, stats, settings) and renders the initial UI. Called
-// once on page load.
+// PWA MANIFEST (inline)
 // ══════════════════════════════════════════
-function loadAppState() {
-  // Date header
-  document.getElementById('td').textContent =
-    new Date().toLocaleDateString('en-IN',{weekday:'long',month:'long',day:'numeric'});
-
-  // Profile + body weight (also used by calorie calc)
-  loadProfile();
-  document.getElementById('weight').value = DB.get('weight',70);
-
-  // GPS starts disabled until permission is confirmed
-  document.getElementById('btn-start').disabled = true;
-
-  // Connectivity banner
-  updateOnlineStatus();
-
-  // Workouts, stats, achievements, history — all pulled fresh from DB
-  // inside refreshAll()'s render* functions, so calling it here loads
-  // and displays everything in one pass.
-  refreshAll();
-
-  // Check if GPS was already granted (from a previous visit to an https page)
-  if (navigator.permissions && navigator.permissions.query) {
-    navigator.permissions.query({name:'geolocation'}).then(r=>{
-      if (r.state === 'granted') {
-        gpsGranted = true;
-        setPill('gps-ok','✅ GPS already allowed');
-        document.getElementById('gps-req-btn').textContent = '✅ GPS Already Granted';
-        document.getElementById('gps-req-btn').classList.add('hidden');
-        document.getElementById('btn-start').disabled = false;
-        // Get initial position to show accuracy
-        navigator.geolocation.getCurrentPosition(
-          p => setPill('gps-ok',`✅ GPS ready ±${Math.round(p.coords.accuracy)}m`),
-          () => {},
-          {enableHighAccuracy:true,timeout:8000,maximumAge:5000}
-        );
-      } else if (r.state === 'denied') {
-        setPill('gps-err','❌ GPS blocked');
-        setGPSMsg('GPS was denied. Open Chrome ⋮ → Settings → Site Settings → Location → find this site → Allow. Then use Manual mode for now.');
-      }
-      // 'prompt' = waiting, button shown by default
-    }).catch(()=>{}); // Permissions API not available — button shown by default
-  }
+function injectManifest(){
+  const manifest={
+    name:'Stride',short_name:'Stride',description:'GPS running tracker & health tests',
+    start_url:location.href,display:'standalone',
+    background_color:'#0d0f12',theme_color:'#00e5a0',
+    icons:[{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%230d0f12"/><text y=".9em" font-size="80">🏃</text></svg>',sizes:'any',type:'image/svg+xml'}]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('link');link.rel='manifest';link.href=url;
+  document.head.appendChild(link);
 }
 
 // ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
+function loadAppState(){
+  document.getElementById('td').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',month:'long',day:'numeric'});
+
+  // Set manual date input to today
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('m-date').value=today;
+
+  loadProfile();
+  document.getElementById('weight').value=DB.get('weight',70);
+  document.getElementById('btn-start').disabled=true;
+  updateOnlineStatus();
+
+  // Pre-fill training plan with stored 5K if available
+  const saved5k=DB.get('plan-5k-current','');
+  if(saved5k)document.getElementById('plan-current').value=saved5k;
+  document.getElementById('plan-current').addEventListener('change',e=>DB.set('plan-5k-current',e.target.value));
+
+  refreshAll();
+  injectManifest();
+
+  // Check if GPS already granted
+  if(navigator.permissions&&navigator.permissions.query){
+    navigator.permissions.query({name:'geolocation'}).then(r=>{
+      if(r.state==='granted'){
+        gpsGranted=true;setPill('gps-ok','✅ GPS already allowed');
+        document.getElementById('gps-req-btn').textContent='✅ GPS Already Granted';
+        document.getElementById('gps-req-btn').classList.add('hidden');
+        document.getElementById('btn-start').disabled=false;
+        navigator.geolocation.getCurrentPosition(
+          p=>setPill('gps-ok',`✅ GPS ready ±${Math.round(p.coords.accuracy)}m`),
+          ()=>{},{enableHighAccuracy:true,timeout:8000,maximumAge:5000}
+        );
+      }else if(r.state==='denied'){
+        setPill('gps-err','❌ GPS blocked');
+        setGPSMsg('GPS was denied. Open Chrome ⋮ → Settings → Site Settings → Location → Allow. Use Manual mode for now.');
+      }
+    }).catch(()=>{});
+  }
+}
+
 loadAppState();
 </script>
 </body>
