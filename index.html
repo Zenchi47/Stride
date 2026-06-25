@@ -217,21 +217,23 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
       </div>
     </div>
 
-    <!-- Live workout card (GPS mode) -->
+    <!-- Live workout card (GPS mode) — always in DOM, shown/hidden via setMode -->
     <div id="live-card" class="card hidden" style="background:linear-gradient(135deg,#1a2a20,#16191f);border-color:rgba(0,229,160,.18)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div>
-          <div style="font-size:12px;color:var(--muted)">Active</div>
+          <div style="font-size:12px;color:var(--muted)">Active workout</div>
           <div id="home-status" style="font-size:14px;font-weight:600;margin-top:2px">
             <span class="sdot off"></span>Not started
           </div>
         </div>
         <div id="type-badge" class="badge bg-gr">Run</div>
       </div>
+
       <div class="timer-wrap">
         <div class="timer" id="home-timer">00:00</div>
         <div class="timer-sub">elapsed</div>
       </div>
+
       <div class="g2" style="margin-top:10px">
         <div class="met"><div class="mval g" id="hd">0.00</div><div class="mlab">km</div></div>
         <div class="met"><div class="mval b" id="hp">--:--</div><div class="mlab">min/km</div></div>
@@ -244,19 +246,45 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
         <div class="met"><div class="mval pk" id="hed">-0 m</div><div class="mlab">elev down</div></div>
         <div class="met"><div class="mval" style="color:var(--blue)" id="hspd">0.0</div><div class="mlab">km/h</div></div>
       </div>
-      <div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px">
+
+      <div style="margin-top:4px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)">
           <span>Goal</span><span id="goal-pct">0%</span>
         </div>
         <div class="gbar-bg"><div class="gbar" id="gbar" style="width:0%"></div></div>
         <div style="font-size:11px;color:var(--muted)" id="goal-lbl">No goal set</div>
       </div>
-    </div>
 
-    <!-- GPS start/stop buttons -->
-    <div id="gps-btns" class="hidden" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <button class="btn btn-g" id="btn-start" onclick="toggleWorkout()">Start Run</button>
-      <button class="btn btn-s" onclick="showPage('pg-settings')">⚙ Settings</button>
+      <!-- START / PAUSE / STOP buttons — always visible in GPS mode -->
+      <div style="margin-top:14px">
+        <!-- Before workout starts: just Start -->
+        <div id="btns-idle">
+          <button class="btn btn-g" id="btn-start" onclick="startWorkout()" style="font-size:16px;padding:15px">
+            ▶ Start
+          </button>
+        </div>
+
+        <!-- During workout: Pause + Stop side by side -->
+        <div id="btns-active" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <button class="btn" id="btn-pause" onclick="pauseWorkout()"
+            style="background:var(--warn);color:#000;font-size:15px;padding:14px">
+            ⏸ Pause
+          </button>
+          <button class="btn btn-r" onclick="stopWorkout()" style="font-size:15px;padding:14px">
+            ⏹ Stop
+          </button>
+        </div>
+
+        <!-- Paused: Resume + Stop side by side -->
+        <div id="btns-paused" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <button class="btn btn-g" onclick="resumeWorkout()" style="font-size:15px;padding:14px">
+            ▶ Resume
+          </button>
+          <button class="btn btn-r" onclick="stopWorkout()" style="font-size:15px;padding:14px">
+            ⏹ Stop & Save
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="sec">Recent workouts</div>
@@ -645,15 +673,13 @@ function setMode(m) {
   document.getElementById('gps-panel').classList.toggle('hidden',    m !== 'gps');
   document.getElementById('manual-panel').classList.toggle('hidden', m !== 'manual');
 
+  // Show/hide the live card — remove hidden class in GPS mode
   const liveCard = document.getElementById('live-card');
-  const gpsBtns  = document.getElementById('gps-btns');
-
   if (m === 'gps') {
     liveCard.classList.remove('hidden');
-    gpsBtns.style.display = 'grid';
   } else {
-    if (!W.active) liveCard.classList.add('hidden');
-    gpsBtns.style.display = 'none';
+    // Only hide if workout not actively running
+    if (!W.active && !W.paused) liveCard.classList.add('hidden');
   }
 }
 
@@ -745,6 +771,7 @@ const W = {
   speedKmh: 0, paceSecKm: 0, bestPace: Infinity,
   goalKm: 5, goalOn: true, goalReached: false,
   timerIv: null, watchId: null,
+  paused: false, pausedAt: 0, totalPaused: 0,
 };
 
 function startGPSWatch() {
@@ -770,6 +797,7 @@ function onPos(pos) {
           acc < 20 ? `✅ GPS ±${Math.round(acc)}m` : `📡 GPS ±${Math.round(acc)}m`);
 
   if (!W.active) return;
+  if (W.paused)  return; // don't accumulate distance while paused
 
   // ── DISTANCE ──────────────────────────
   if (acc <= 50 && W.lastLat !== null) {
@@ -842,17 +870,31 @@ function updateLiveUI() {
 }
 
 // ══════════════════════════════════════════
-// START / STOP  (GPS mode)
+// START / PAUSE / RESUME / STOP  (GPS mode)
 // ══════════════════════════════════════════
-function toggleWorkout() {
-  W.active ? stopWorkout() : startWorkout();
+
+// Switch which button group is visible
+function showBtns(state) {
+  // state: 'idle' | 'active' | 'paused'
+  document.getElementById('btns-idle').classList.toggle('hidden',   state !== 'idle');
+  const activEl = document.getElementById('btns-active');
+  const pauseEl = document.getElementById('btns-paused');
+  activEl.classList.toggle('hidden', state !== 'active');
+  pauseEl.classList.toggle('hidden', state !== 'paused');
+  activEl.style.display = state === 'active' ? 'grid' : '';
+  pauseEl.style.display = state === 'paused' ? 'grid' : '';
 }
 
 function startWorkout() {
-  if (!gpsGranted) { setGPSMsg('Grant GPS permission first — tap "Request GPS Permission".'); return; }
+  if (!gpsGranted) {
+    setGPSMsg('Grant GPS permission first — tap "Request GPS Permission" above.');
+    return;
+  }
 
   Object.assign(W, {
-    active:true, startTime:Date.now(), elapsed:0,
+    active:true, paused:false,
+    startTime:Date.now(), elapsed:0,
+    pausedAt:0, totalPaused:0,
     distM:0, elevUp:0, elevDown:0,
     lastAlt:null, altBuf:[], paceWin:[],
     lastLat:null, lastLon:null, lastGPSt:null,
@@ -863,40 +905,62 @@ function startWorkout() {
   });
 
   const isRun = W.type === 'run';
-  document.getElementById('btn-start').textContent = 'Stop Workout';
-  document.getElementById('btn-start').className   = 'btn btn-r';
   document.getElementById('home-status').innerHTML =
-    `<span class="sdot on"></span>${isRun?'Running':'Walking'}…`;
+    `<span class="sdot on"></span>${isRun ? 'Running' : 'Walking'}…`;
   document.getElementById('type-badge').textContent = isRun ? '🏃 Run' : '🚶 Walk';
   document.getElementById('type-badge').className   = 'badge ' + (isRun ? 'bg-g' : 'bg-b');
   document.getElementById('gbar').style.width = '0%';
   document.getElementById('goal-lbl').textContent =
     W.goalOn ? '0.00 / ' + W.goalKm.toFixed(2) + ' km' : 'No goal set';
 
-  // Timer
+  showBtns('active');
+
+  // Timer — subtracts paused time so it only counts moving time
   W.timerIv = setInterval(() => {
-    W.elapsed = (Date.now() - W.startTime) / 1000;
+    if (W.paused) return;
+    W.elapsed = (Date.now() - W.startTime - W.totalPaused) / 1000;
     document.getElementById('home-timer').textContent = fmtTime(W.elapsed);
     document.getElementById('hc').textContent = calcCal(W.type, W.elapsed, W.distM/1000, W.elevUp);
   }, 1000);
 
   startGPSWatch();
-
-  // Keep screen on
   if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
+}
+
+function pauseWorkout() {
+  if (!W.active || W.paused) return;
+  W.paused   = true;
+  W.pausedAt = Date.now();
+  stopGPSWatch(); // saves battery
+  document.getElementById('home-status').innerHTML =
+    '<span class="sdot off"></span>⏸ Paused';
+  showBtns('paused');
+}
+
+function resumeWorkout() {
+  if (!W.active || !W.paused) return;
+  W.paused       = false;
+  W.totalPaused += Date.now() - W.pausedAt;
+  startGPSWatch();
+  const isRun = W.type === 'run';
+  document.getElementById('home-status').innerHTML =
+    `<span class="sdot on"></span>${isRun ? 'Running' : 'Walking'}…`;
+  showBtns('active');
 }
 
 function stopWorkout() {
   clearInterval(W.timerIv);
   stopGPSWatch();
   W.active = false;
+  W.paused = false;
 
-  document.getElementById('btn-start').textContent = `Start ${W.type==='run'?'Run':'Walk'}`;
-  document.getElementById('btn-start').className   = 'btn btn-g';
-  document.getElementById('home-status').innerHTML = '<span class="sdot off"></span>Not started';
+  document.getElementById('home-status').innerHTML =
+    '<span class="sdot off"></span>Not started';
+  document.getElementById('home-timer').textContent = '00:00';
+  showBtns('idle');
 
   const km = W.distM / 1000;
-  if (km < 0.03 || W.elapsed < 10) return; // too short
+  if (km < 0.03 || W.elapsed < 10) return; // too short to save
 
   saveRecord({
     type:       W.type,
@@ -912,6 +976,10 @@ function stopWorkout() {
     source:     'gps',
   });
 }
+
+// legacy
+function toggleWorkout() { W.active ? stopWorkout() : startWorkout(); }
+
 
 // ══════════════════════════════════════════
 // MANUAL SAVE
