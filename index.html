@@ -840,7 +840,7 @@ const W = {
   startTime: 0, elapsed: 0,
   distM: 0, elevUp: 0, elevDown: 0,
   lastAlt: null, altBuf: [],
-  paceWin: [], lastLat: null, lastLon: null, lastGPSt: null,
+  paceWin: [], lastLat: null, lastLon: null, lastGPSt: null, lastAcc: null,
   speedKmh: 0, paceSecKm: 0, bestPace: Infinity,
   paceHistory: [],   // all raw pace samples — for trend bars + avg
   lapStartM: 0,      // distM at start of current 1km lap
@@ -862,6 +862,16 @@ function stopGPSWatch() {
   if (W.watchId !== null) { navigator.geolocation.clearWatch(W.watchId); W.watchId = null; }
 }
 
+// Max accuracy (meters) we'll trust at all. Typical phone GPS outdoors is
+// 5-15m; indoors or under cover it can be 50-100m+. Above this, the fix
+// is too noisy to use for distance/pace, so we skip it entirely.
+const GPS_MAX_ACCURACY = 25;
+
+// A human cannot realistically move faster than this on foot (m/s).
+// ~7 m/s ≈ 25 km/h ≈ a fast sprint. Anything faster is almost always
+// a GPS jump, not real movement, so we discard that sample.
+const MAX_HUMAN_SPEED_MS = 7;
+
 function onPos(pos) {
   const lat  = pos.coords.latitude;
   const lon  = pos.coords.longitude;
@@ -870,61 +880,90 @@ function onPos(pos) {
   const ts   = pos.timestamp;
 
   // Update pill
-  setPill(acc < 20 ? 'gps-ok' : 'gps-warn',
-          acc < 20 ? `✅ GPS ±${Math.round(acc)}m` : `📡 GPS ±${Math.round(acc)}m`);
+  setPill(acc < 15 ? 'gps-ok' : acc <= GPS_MAX_ACCURACY ? 'gps-warn' : 'gps-err',
+          acc < 15 ? `✅ GPS ±${Math.round(acc)}m`
+                    : acc <= GPS_MAX_ACCURACY ? `📡 GPS ±${Math.round(acc)}m`
+                    : `⚠️ Weak GPS ±${Math.round(acc)}m`);
 
   if (!W.active) return;
   if (W.paused)  return; // don't accumulate distance while paused
 
+  // Reject fixes that are too imprecise to trust — counting them would
+  // just add GPS drift as if it were real movement.
+  if (acc > GPS_MAX_ACCURACY) return;
+
   // ── DISTANCE ──────────────────────────
-  if (acc <= 50 && W.lastLat !== null) {
-    const dist = haversine(W.lastLat, W.lastLon, lat, lon);
-    const minMove = W.type === 'run' ? 2 : 1;
-    if (dist >= minMove && dist <= 150) {
+  if (W.lastLat !== null) {
+    const dist  = haversine(W.lastLat, W.lastLon, lat, lon);
+    const dtSec = (ts - W.lastGPSt) / 1000;
+
+    // The two fixes being compared each carry their own error margin.
+    // A real step has to be bigger than that combined margin, or we're
+    // just measuring GPS jitter while standing still.
+    const lastAcc   = W.lastAcc !== null ? W.lastAcc : acc;
+    const noiseFloor = Math.max(3, (acc + lastAcc) * 0.5);
+
+    // Reject samples too close together in time (duplicate/rapid fixes)
+    // or with an implausible implied speed (GPS jump, not real movement).
+    const impliedSpeed = dtSec > 0 ? dist / dtSec : 0;
+
+    if (dtSec > 0.5 && dtSec < 30 && dist > noiseFloor && dist <= 150
+        && impliedSpeed <= MAX_HUMAN_SPEED_MS) {
+
       W.distM += dist;
+      W.speedKmh = impliedSpeed * 3.6;
 
-      // Speed & Pace
-      const dtSec = (ts - W.lastGPSt) / 1000;
-      if (dtSec > 0 && dtSec < 30) {
-        const ms   = dist / dtSec;
-        W.speedKmh = ms * 3.6;
-        if (W.distM > 10) {
-          const raw = 1000 / ms;  // sec per km
-          W.paceWin.push(raw);
-          if (W.paceWin.length > 5) W.paceWin.shift();
-          W.paceSecKm = W.paceWin.reduce((a,b)=>a+b,0) / W.paceWin.length;
-          if (W.paceSecKm > 30 && W.paceSecKm < W.bestPace) W.bestPace = W.paceSecKm;
+      if (W.distM > 10) {
+        const raw = 1000 / impliedSpeed;  // sec per km for this segment
+        W.paceWin.push(raw);
+        if (W.paceWin.length > 8) W.paceWin.shift(); // wider window = smoother, less jumpy
+        W.paceSecKm = W.paceWin.reduce((a,b)=>a+b,0) / W.paceWin.length;
+        if (W.paceSecKm > 30 && W.paceSecKm < W.bestPace) W.bestPace = W.paceSecKm;
 
-          // Store in pace history for trend bars + avg (cap at 60 samples)
-          W.paceHistory.push(W.paceSecKm);
-          if (W.paceHistory.length > 60) W.paceHistory.shift();
+        // Store in pace history for trend bars + avg (cap at 60 samples)
+        W.paceHistory.push(W.paceSecKm);
+        if (W.paceHistory.length > 60) W.paceHistory.shift();
 
-          // Lap detection — compute pace of each completed 1km lap
-          if (W.distM - W.lapStartM >= 1000) {
-            const lapSec  = W.elapsed - W.lapStartT;
-            W.lapPaceSec  = lapSec; // time to run 1km = sec/km
-            W.lapStartM   = W.distM;
-            W.lapStartT   = W.elapsed;
-          }
+        // Lap detection — compute pace of each completed 1km lap
+        if (W.distM - W.lapStartM >= 1000) {
+          const lapSec  = W.elapsed - W.lapStartT;
+          W.lapPaceSec  = lapSec; // time to run 1km = sec/km
+          W.lapStartM   = W.distM;
+          W.lapStartT   = W.elapsed;
         }
       }
+
+      // Only advance the "last fix" used for distance comparison when we
+      // actually accepted a movement — keeps the noise floor meaningful
+      // instead of resetting on every rejected jitter sample.
+      W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts; W.lastAcc = acc;
+    } else if (dtSec >= 30 || W.lastLat === null) {
+      // Too much time has passed to meaningfully compare — resync position
+      // without counting distance, so we don't accumulate a stale jump.
+      W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts; W.lastAcc = acc;
     }
+    // else: rejected as noise/jump — keep the previous fix as the reference
+    // point so small genuine movements aren't masked by one bad sample.
+  } else {
+    W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts; W.lastAcc = acc;
   }
 
   // ── ELEVATION ─────────────────────────
-  if (alt !== null) {
+  // Only trust altitude readings that come with decent horizontal accuracy —
+  // altitude is noisier than lat/lon, so a poor fix here is even less reliable.
+  if (alt !== null && acc <= GPS_MAX_ACCURACY) {
     W.altBuf.push(alt);
-    if (W.altBuf.length > 3) W.altBuf.shift();
+    if (W.altBuf.length > 5) W.altBuf.shift(); // wider smoothing window
     const sm = W.altBuf.reduce((a,b)=>a+b,0) / W.altBuf.length;
     if (W.lastAlt !== null) {
       const d = sm - W.lastAlt;
-      if (d > 0.5) W.elevUp += d;
-      else if (d < -0.5) W.elevDown += -d;
+      // Ignore tiny fluctuations under 1m — GPS altitude noise, not real elevation change.
+      if (d > 1)       W.elevUp   += d;
+      else if (d < -1) W.elevDown += -d;
     }
-    W.lastAlt = W.altBuf.reduce((a,b)=>a+b,0) / W.altBuf.length;
+    W.lastAlt = sm;
   }
 
-  W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts;
   updateLiveUI();
 
   // Goal check
@@ -1023,7 +1062,7 @@ function startWorkout() {
     pausedAt:0, totalPaused:0,
     distM:0, elevUp:0, elevDown:0,
     lastAlt:null, altBuf:[], paceWin:[],
-    lastLat:null, lastLon:null, lastGPSt:null,
+    lastLat:null, lastLon:null, lastGPSt:null, lastAcc:null,
     speedKmh:0, paceSecKm:0, bestPace:Infinity,
     paceHistory:[], lapStartM:0, lapStartT:0, lapPaceSec:0,
     goalReached:false,
