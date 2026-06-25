@@ -203,17 +203,17 @@ input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);
         <!-- Terrain picker — this is how we get elevation -->
         <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Terrain type</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px">
-          <button class="terrain-btn sel" id="tb-flat"   onclick="setTerrain('flat')"   title="Flat">
-            <div style="font-size:20px">🛣️</div><div>Flat</div>
+          <button class="terrain-btn sel" id="tb-flat"   onclick="setTerrain('flat')"   title="Flat — 0% grade">
+            <div style="font-size:20px">🛣️</div><div>Flat</div><div style="font-size:9px;opacity:.7">0%</div>
           </button>
-          <button class="terrain-btn" id="tb-rolling" onclick="setTerrain('rolling')" title="Rolling hills">
-            <div style="font-size:20px">🌄</div><div>Rolling</div>
+          <button class="terrain-btn" id="tb-rolling" onclick="setTerrain('rolling')" title="Rolling hills — 2-5% grade">
+            <div style="font-size:20px">🌄</div><div>Rolling</div><div style="font-size:9px;opacity:.7">2-5%</div>
           </button>
-          <button class="terrain-btn" id="tb-hilly"   onclick="setTerrain('hilly')"   title="Hilly">
-            <div style="font-size:20px">⛰️</div><div>Hilly</div>
+          <button class="terrain-btn" id="tb-hilly"   onclick="setTerrain('hilly')"   title="Hilly — 8-15% grade">
+            <div style="font-size:20px">⛰️</div><div>Hilly</div><div style="font-size:9px;opacity:.7">8-15%</div>
           </button>
-          <button class="terrain-btn" id="tb-steep"   onclick="setTerrain('steep')"   title="Steep / mountains">
-            <div style="font-size:20px">🏔️</div><div>Steep</div>
+          <button class="terrain-btn" id="tb-steep"   onclick="setTerrain('steep')"   title="Steep / mountains — 20%+ grade">
+            <div style="font-size:20px">🏔️</div><div>Steep</div><div style="font-size:9px;opacity:.7">20%+</div>
           </button>
         </div>
 
@@ -846,6 +846,7 @@ const W = {
   lapStartM: 0,      // distM at start of current 1km lap
   lapStartT: 0,      // elapsed sec at start of current 1km lap
   lapPaceSec: 0,     // completed last-km lap pace (sec/km)
+  fastestKmSec: Infinity, // fastest single completed km this session (sec/km)
   goalKm: 5, goalOn: true, goalReached: false,
   timerIv: null, watchId: null,
   paused: false, pausedAt: 0, totalPaused: 0,
@@ -924,10 +925,12 @@ function onPos(pos) {
         W.paceHistory.push(W.paceSecKm);
         if (W.paceHistory.length > 60) W.paceHistory.shift();
 
-        // Lap detection — compute pace of each completed 1km lap
+        // Lap detection — compute pace of each completed 1km lap, and
+        // remember the fastest one for the session's "fastest 1km" record.
         if (W.distM - W.lapStartM >= 1000) {
           const lapSec  = W.elapsed - W.lapStartT;
           W.lapPaceSec  = lapSec; // time to run 1km = sec/km
+          if (lapSec > 0 && lapSec < W.fastestKmSec) W.fastestKmSec = lapSec;
           W.lapStartM   = W.distM;
           W.lapStartT   = W.elapsed;
         }
@@ -1064,7 +1067,7 @@ function startWorkout() {
     lastAlt:null, altBuf:[], paceWin:[],
     lastLat:null, lastLon:null, lastGPSt:null, lastAcc:null,
     speedKmh:0, paceSecKm:0, bestPace:Infinity,
-    paceHistory:[], lapStartM:0, lapStartT:0, lapPaceSec:0,
+    paceHistory:[], lapStartM:0, lapStartT:0, lapPaceSec:0, fastestKmSec:Infinity,
     goalReached:false,
     goalKm: getGoalKm(),
     goalOn: document.getElementById('tog-goal').classList.contains('on'),
@@ -1081,13 +1084,16 @@ function startWorkout() {
 
   showBtns('active');
 
-  // Timer — subtracts paused time so it only counts moving time
+  // Timer — ticks every 100ms for smooth, responsive elapsed-time tracking;
+  // subtracts paused time so it only counts moving time. Display still
+  // shows whole seconds (fmtTime floors), but recalculates on every tick
+  // so the UI never feels like it's lagging behind a 1-second grid.
   W.timerIv = setInterval(() => {
     if (W.paused) return;
     W.elapsed = (Date.now() - W.startTime - W.totalPaused) / 1000;
     document.getElementById('home-timer').textContent = fmtTime(W.elapsed);
     document.getElementById('hc').textContent = calcCal(W.type, W.elapsed, W.distM/1000, W.elevUp);
-  }, 1000);
+  }, 100);
 
   startGPSWatch();
   if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
@@ -1137,6 +1143,7 @@ function stopWorkout() {
     elevDown:   +W.elevDown.toFixed(1),
     avgPace:    W.elapsed > 0 && km > 0 ? W.elapsed / km : 0,
     bestPace:   isFinite(W.bestPace) ? W.bestPace : 0,
+    fastestKm:  isFinite(W.fastestKmSec) ? W.fastestKmSec : 0,
     goalKm:     W.goalOn ? W.goalKm : null,
     goalReached:W.goalReached,
     source:     'gps',
@@ -1151,19 +1158,20 @@ function toggleWorkout() { W.active ? stopWorkout() : startWorkout(); }
 // MANUAL SAVE
 // ══════════════════════════════════════════
 // ══════════════════════════════════════════
-// TERRAIN → ELEVATION ESTIMATION
-// Based on real-world average elevation gain per km for each terrain type:
-//   Flat    → ~  5 m/km  (parks, roads, treadmill)
-//   Rolling → ~ 25 m/km  (typical city/suburban run)
-//   Hilly   → ~ 60 m/km  (trail, hill routes)
-//   Steep   → ~120 m/km  (mountain, heavy trail)
-// Descent is estimated as 80% of gain (most routes aren't one-way climbs)
+// TERRAIN → ELEVATION ESTIMATION (grade-percentage model)
+// Grade % = rise/run — the standard way trail and road grades are described.
+// Over 1 km of horizontal distance, elevation gain (m) = grade% × 10.
+//   Flat    →  0%      → 0 m/km     (roads, treadmill, track)
+//   Rolling →  2–5%    → 35 m/km    (typical city/suburban run, midpoint 3.5%)
+//   Hilly   →  8–15%   → 115 m/km   (trail, hill routes, midpoint 11.5%)
+//   Steep   →  20%+    → 220 m/km   (mountain, heavy trail, representative 22%)
+// Descent is estimated as 80% of gain (most routes aren't one-way climbs).
 // ══════════════════════════════════════════
 const TERRAIN = {
-  flat:    { gainPerKm: 5,   dropPerKm: 4,   label: 'Flat road / treadmill'  },
-  rolling: { gainPerKm: 25,  dropPerKm: 20,  label: 'Rolling hills'          },
-  hilly:   { gainPerKm: 60,  dropPerKm: 50,  label: 'Hilly / trail'          },
-  steep:   { gainPerKm: 120, dropPerKm: 100, label: 'Steep / mountains'      },
+  flat:    { grade: '0%',     gainPerKm: 0,   dropPerKm: 0,   label: 'Flat road / treadmill'  },
+  rolling: { grade: '2–5%',   gainPerKm: 35,  dropPerKm: 28,  label: 'Rolling hills'          },
+  hilly:   { grade: '8–15%',  gainPerKm: 115, dropPerKm: 92,  label: 'Hilly / trail'          },
+  steep:   { grade: '20%+',   gainPerKm: 220, dropPerKm: 176, label: 'Steep / mountains'      },
 };
 
 let currentTerrain = 'flat';
@@ -1245,6 +1253,20 @@ function saveRecord(rec) {
   rec.date = new Date().toISOString();
   DB.push('workouts', rec);
 
+  const stats = updateStats(rec);
+
+  const newAchs = checkAch(rec.distKm, stats.totalDistKm, stats.totalElevM, stats.streak);
+  refreshAll();
+  if (newAchs.length) setTimeout(()=>showAchModal(newAchs[0]), 500);
+}
+
+// ══════════════════════════════════════════
+// updateStats — recalculates running totals after a workout is saved.
+// Pulls current stats from DB, folds in the new record, persists, and
+// returns the updated stats object so callers (saveRecord, achievements)
+// can act on it without a second DB read.
+// ══════════════════════════════════════════
+function updateStats(rec) {
   const stats = DB.get('stats', {
     totalDistKm:0, totalCal:0, totalElevM:0,
     totalSec:0, workouts:0, bestPace:null, streak:0, lastDate:null
@@ -1265,10 +1287,7 @@ function saveRecord(rec) {
     stats.lastDate = today;
   }
   DB.set('stats', stats);
-
-  const newAchs = checkAch(rec.distKm, stats.totalDistKm, stats.totalElevM, stats.streak);
-  refreshAll();
-  if (newAchs.length) setTimeout(()=>showAchModal(newAchs[0]), 500);
+  return stats;
 }
 
 // ══════════════════════════════════════════
@@ -1434,13 +1453,22 @@ function renderAchievements() {
   document.getElementById('ach-streak').innerHTML = ACH_STREAK.map(a=>row(a,stats.streak||0,a.days,'days')).join('');
 }
 
+// renderHistory — orchestrates the History tab: the workout list and the
+// personal records card. Kept as the single function showPage() calls,
+// while the actual list-building and record-calculating logic each live
+// in their own named function for clarity and reuse.
 function renderHistory() {
+  renderWorkoutHistory();
+  renderPersonalRecords();
+}
+
+// renderWorkoutHistory — renders every saved workout (newest first) with
+// date, distance, time, and pace.
+function renderWorkoutHistory() {
   const wkts = DB.get('workouts',[]);
   const el   = document.getElementById('hist-list');
-  const pr   = document.getElementById('pr-card');
   if (!wkts.length) {
     el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>';
-    pr.innerHTML = '<div style="color:var(--muted);font-size:13px">Complete workouts to see records.</div>';
     return;
   }
   el.innerHTML = [...wkts].reverse().map(w=>{
@@ -1458,16 +1486,31 @@ function renderHistory() {
       <div class="${rk.css}" style="font-size:20px">${rk.icon}</div>
     </div>`;
   }).join('');
+}
 
-  const bd = [...wkts].sort((a,b)=>b.distKm-a.distKm)[0];
-  const bp = [...wkts].filter(w=>w.bestPace>0).sort((a,b)=>a.bestPace-b.bestPace)[0];
-  const bc = [...wkts].sort((a,b)=>b.cal-a.cal)[0];
-  const be = [...wkts].sort((a,b)=>b.elevUp-a.elevUp)[0];
+// renderPersonalRecords — calculates and displays best-ever stats across
+// all saved workouts: best pace, fastest 1km, longest workout, most
+// elevation gained in a single session.
+function renderPersonalRecords() {
+  const wkts = DB.get('workouts',[]);
+  const pr   = document.getElementById('pr-card');
+  if (!wkts.length) {
+    pr.innerHTML = '<div style="color:var(--muted);font-size:13px">Complete workouts to see records.</div>';
+    return;
+  }
+
+  const bd = [...wkts].sort((a,b)=>b.distKm-a.distKm)[0];                                  // longest workout
+  const bp = [...wkts].filter(w=>w.bestPace>0).sort((a,b)=>a.bestPace-b.bestPace)[0];       // best instantaneous pace
+  const fk = [...wkts].filter(w=>w.fastestKm>0).sort((a,b)=>a.fastestKm-b.fastestKm)[0];    // fastest completed 1km
+  const bc = [...wkts].sort((a,b)=>b.cal-a.cal)[0];                                         // most kcal burned
+  const be = [...wkts].sort((a,b)=>b.elevUp-a.elevUp)[0];                                   // most elevation gained
+
   pr.innerHTML = [
-    {ico:'🏅',t:'Longest',    v:bd.distKm.toFixed(2)+' km', d:bd.date},
-    bp?{ico:'⚡',t:'Best pace',v:fmtPace(bp.bestPace)+'/km',d:bp.date}:null,
-    {ico:'🔥',t:'Most kcal',  v:bc.cal+' kcal',             d:bc.date},
-    {ico:'⛰️',t:'Most climb', v:Math.round(be.elevUp||0)+'m',d:be.date},
+    {ico:'🏅',t:'Longest',     v:bd.distKm.toFixed(2)+' km', d:bd.date},
+    bp?{ico:'⚡',t:'Best pace', v:fmtPace(bp.bestPace)+'/km',d:bp.date}:null,
+    fk?{ico:'🎯',t:'Fastest 1km',v:fmtPace(fk.fastestKm)+'/km',d:fk.date}:null,
+    {ico:'🔥',t:'Most kcal',   v:bc.cal+' kcal',             d:bc.date},
+    {ico:'⛰️',t:'Most climb',  v:Math.round(be.elevUp||0)+'m',d:be.date},
   ].filter(Boolean).map((p,i,arr)=>`
     <div class="ach" style="${i===arr.length-1?'border:none;padding-bottom:0':''}">
       <div class="ach-ico e">${p.ico}</div>
@@ -1893,39 +1936,58 @@ function confetti() {
 }
 
 // ══════════════════════════════════════════
-// INIT
+// loadAppState — single entry point that loads everything persisted in DB
+// (workouts, profile, stats, settings) and renders the initial UI. Called
+// once on page load.
 // ══════════════════════════════════════════
-document.getElementById('td').textContent =
-  new Date().toLocaleDateString('en-IN',{weekday:'long',month:'long',day:'numeric'});
-document.getElementById('weight').value = DB.get('weight',70);
-document.getElementById('btn-start').disabled = true;
-updateOnlineStatus();
-loadProfile();
+function loadAppState() {
+  // Date header
+  document.getElementById('td').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'long',month:'long',day:'numeric'});
 
-// Check if GPS was already granted (from a previous visit to an https page)
-if (navigator.permissions && navigator.permissions.query) {
-  navigator.permissions.query({name:'geolocation'}).then(r=>{
-    if (r.state === 'granted') {
-      gpsGranted = true;
-      setPill('gps-ok','✅ GPS already allowed');
-      document.getElementById('gps-req-btn').textContent = '✅ GPS Already Granted';
-      document.getElementById('gps-req-btn').classList.add('hidden');
-      document.getElementById('btn-start').disabled = false;
-      // Get initial position to show accuracy
-      navigator.geolocation.getCurrentPosition(
-        p => setPill('gps-ok',`✅ GPS ready ±${Math.round(p.coords.accuracy)}m`),
-        () => {},
-        {enableHighAccuracy:true,timeout:8000,maximumAge:5000}
-      );
-    } else if (r.state === 'denied') {
-      setPill('gps-err','❌ GPS blocked');
-      setGPSMsg('GPS was denied. Open Chrome ⋮ → Settings → Site Settings → Location → find this site → Allow. Then use Manual mode for now.');
-    }
-    // 'prompt' = waiting, button shown by default
-  }).catch(()=>{}); // Permissions API not available — button shown by default
+  // Profile + body weight (also used by calorie calc)
+  loadProfile();
+  document.getElementById('weight').value = DB.get('weight',70);
+
+  // GPS starts disabled until permission is confirmed
+  document.getElementById('btn-start').disabled = true;
+
+  // Connectivity banner
+  updateOnlineStatus();
+
+  // Workouts, stats, achievements, history — all pulled fresh from DB
+  // inside refreshAll()'s render* functions, so calling it here loads
+  // and displays everything in one pass.
+  refreshAll();
+
+  // Check if GPS was already granted (from a previous visit to an https page)
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({name:'geolocation'}).then(r=>{
+      if (r.state === 'granted') {
+        gpsGranted = true;
+        setPill('gps-ok','✅ GPS already allowed');
+        document.getElementById('gps-req-btn').textContent = '✅ GPS Already Granted';
+        document.getElementById('gps-req-btn').classList.add('hidden');
+        document.getElementById('btn-start').disabled = false;
+        // Get initial position to show accuracy
+        navigator.geolocation.getCurrentPosition(
+          p => setPill('gps-ok',`✅ GPS ready ±${Math.round(p.coords.accuracy)}m`),
+          () => {},
+          {enableHighAccuracy:true,timeout:8000,maximumAge:5000}
+        );
+      } else if (r.state === 'denied') {
+        setPill('gps-err','❌ GPS blocked');
+        setGPSMsg('GPS was denied. Open Chrome ⋮ → Settings → Site Settings → Location → find this site → Allow. Then use Manual mode for now.');
+      }
+      // 'prompt' = waiting, button shown by default
+    }).catch(()=>{}); // Permissions API not available — button shown by default
+  }
 }
 
-refreshAll();
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+loadAppState();
 </script>
 </body>
 </html>
