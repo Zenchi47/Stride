@@ -1,2 +1,2 @@
-# Stride
-Run tracker and health app for athletes and beginners
+# Stride 
+New project , just learning in a new way
