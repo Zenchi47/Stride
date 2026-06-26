@@ -1,2 +1,2 @@
 # Stride 
-New project , just learning 
+A web app for runners
