@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Stride</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div>
+      <div class="logo">Stride</div>
+      <div style="font-size:11px;color:var(--muted)" id="td"></div>
+    </div>
+    <div class="streak" id="streak-badge">🔥 0 day streak</div>
+  </div>
+
+  <div class="offline-banner" id="offline-banner">📴 <span>Offline — your data is saved on this device.</span></div>
+
+  <!-- Lap toast -->
+  <div class="lap-toast" id="lap-toast">🏁 Lap 1 — --:-- /km</div>
+
+  <!-- ══════════ HOME ══════════ -->
+  <div class="page active" id="pg-home">
+
+    <div class="mode-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600">Tracking mode</span>
+        <span id="gps-pill" class="gps-pill gps-warn">📡 GPS not ready</span>
+      </div>
+      <div class="mode-row">
+        <button class="mode-btn"     id="mbtn-gps"    onclick="setMode('gps')">📍 GPS Auto</button>
+        <button class="mode-btn sel" id="mbtn-manual" onclick="setMode('manual')">✏️ Manual</button>
+      </div>
+
+      <!-- GPS sub-panel -->
+      <div id="gps-panel" class="hidden">
+        <button class="btn btn-b" id="gps-req-btn" onclick="askGPS()" style="font-size:14px;padding:11px">
+          📡 Request GPS Permission
+        </button>
+        <div id="gps-msg" style="font-size:12px;color:var(--muted);margin-top:7px;line-height:1.5">
+          GPS uses your phone's location chip — works with no WiFi or mobile data, as long as Location is on in settings.
+        </div>
+      </div>
+
+      <!-- Manual sub-panel -->
+      <div id="manual-panel">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Enter distance and time — we handle the rest.</div>
+
+        <!-- Date picker -->
+        <div class="date-row">
+          <div style="flex:1">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Workout date</div>
+            <input type="date" id="m-date">
+          </div>
+        </div>
+
+        <div class="g2" style="margin-bottom:8px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Distance</div>
+            <div style="display:flex;gap:4px">
+              <input class="num-input" type="number" id="m-dist" placeholder="0.0" min="0" step="0.01" style="flex:1" oninput="previewManual()">
+              <select id="m-dist-unit" style="width:58px;background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:6px 4px;color:var(--txt);font-size:13px" onchange="previewManual()">
+                <option value="km">km</option>
+                <option value="mi">mi</option>
+                <option value="m">m</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Duration (min)</div>
+            <input class="num-input" type="number" id="m-dur" placeholder="0" min="0" step="1" oninput="previewManual()">
+          </div>
+        </div>
+
+        <!-- Terrain picker -->
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Terrain type</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+          <button class="terrain-btn sel" id="tb-flat"    onclick="setTerrain('flat')">   <div style="font-size:20px">🛣️</div><div>Flat</div>   <div style="font-size:9px;opacity:.7">0%</div></button>
+          <button class="terrain-btn"    id="tb-rolling"  onclick="setTerrain('rolling')"><div style="font-size:20px">🌄</div><div>Rolling</div><div style="font-size:9px;opacity:.7">2-5%</div></button>
+          <button class="terrain-btn"    id="tb-hilly"    onclick="setTerrain('hilly')">  <div style="font-size:20px">⛰️</div><div>Hilly</div>  <div style="font-size:9px;opacity:.7">8-15%</div></button>
+          <button class="terrain-btn"    id="tb-steep"    onclick="setTerrain('steep')">  <div style="font-size:20px">🏔️</div><div>Steep</div>  <div style="font-size:9px;opacity:.7">20%+</div></button>
+        </div>
+
+        <!-- Live preview -->
+        <div id="manual-preview" style="display:none;background:var(--surf3);border-radius:10px;padding:12px;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Preview</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+            <div><div style="font-size:17px;font-weight:700;color:var(--green)" id="prev-pace">--</div><div style="font-size:10px;color:var(--muted)">min/km</div></div>
+            <div><div style="font-size:17px;font-weight:700;color:var(--purple)" id="prev-elev">-- m</div><div style="font-size:10px;color:var(--muted)">elev gain</div></div>
+            <div><div style="font-size:17px;font-weight:700;color:var(--warn)" id="prev-cal">-- kcal</div><div style="font-size:10px;color:var(--muted)">calories</div></div>
+          </div>
+        </div>
+
+        <button class="btn btn-g" style="font-size:14px;padding:13px" onclick="saveManual()">💾 Save Workout</button>
+      </div>
+    </div>
+
+    <!-- Live GPS workout card -->
+    <div id="live-card" class="card hidden" style="background:linear-gradient(135deg,#1a2a20,#16191f);border-color:rgba(0,229,160,.18)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div style="font-size:12px;color:var(--muted)">Active workout</div>
+          <div id="home-status" style="font-size:14px;font-weight:600;margin-top:2px">
+            <span class="sdot off"></span>Not started
+          </div>
+        </div>
+        <div id="type-badge" class="badge bg-gr">Run</div>
+      </div>
+
+      <div class="timer-wrap">
+        <div class="timer" id="home-timer">00:00</div>
+        <div class="timer-sub">elapsed</div>
+      </div>
+
+      <div class="g2" style="margin-top:10px">
+        <div class="met"><div class="mval g" id="hd">0.00</div><div class="mlab">km distance</div></div>
+        <div class="met"><div class="mval b" id="hspd">0.0</div><div class="mlab">km/h speed</div></div>
+      </div>
+
+      <!-- Pace card -->
+      <div style="background:var(--surf3);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Pace</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Live</div>
+            <div style="font-size:22px;font-weight:800;color:var(--green);letter-spacing:-0.5px" id="hp-live">--:--</div>
+            <div style="font-size:10px;color:var(--muted)">min/km</div>
+          </div>
+          <div style="border-left:.5px solid var(--bdr2);border-right:.5px solid var(--bdr2)">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Avg</div>
+            <div style="font-size:22px;font-weight:800;color:var(--blue);letter-spacing:-0.5px" id="hp-avg">--:--</div>
+            <div style="font-size:10px;color:var(--muted)">min/km</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Best</div>
+            <div style="font-size:22px;font-weight:800;color:var(--purple);letter-spacing:-0.5px" id="hp-best">--:--</div>
+            <div style="font-size:10px;color:var(--muted)">min/km</div>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <div style="font-size:10px;color:var(--muted)">Pace trend — shorter = faster</div>
+            <div style="font-size:10px;color:var(--muted)" id="pace-latest-label"></div>
+          </div>
+          <div id="pace-bars" style="display:flex;align-items:flex-end;gap:3px;height:28px"></div>
+        </div>
+      </div>
+
+      <!-- Cadence -->
+      <div style="background:var(--surf3);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Cadence</div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <span style="font-size:28px;font-weight:800;color:var(--pink)" id="cadence-val">--</span>
+            <span style="font-size:12px;color:var(--muted)">spm</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px" id="cadence-hint">Target: 170–180 spm</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Steps</div>
+          <div style="font-size:20px;font-weight:700;color:var(--txt)" id="step-count">0</div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <div class="met"><div class="mval w" id="hc">0</div><div class="mlab">kcal burned</div></div>
+        <div class="met"><div class="mval p" id="heu">+0 m</div><div class="mlab">elev up</div></div>
+      </div>
+      <div class="g2">
+        <div class="met"><div class="mval pk" id="hed">-0 m</div><div class="mlab">elev down</div></div>
+        <div class="met"><div class="mval" style="color:var(--warn)" id="hlap">--:--</div><div class="mlab">last km pace</div></div>
+      </div>
+
+      <div style="margin-top:4px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)">
+          <span>Goal</span><span id="goal-pct">0%</span>
+        </div>
+        <div class="gbar-bg"><div class="gbar" id="gbar" style="width:0%"></div></div>
+        <div style="font-size:11px;color:var(--muted)" id="goal-lbl">No goal set</div>
+      </div>
+
+      <div style="margin-top:14px">
+        <div id="btns-idle">
+          <button class="btn btn-g" id="btn-start" onclick="startWorkout()" style="font-size:16px;padding:15px" disabled>▶ Start</button>
+        </div>
+        <div id="btns-active" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <button class="btn btn-o" onclick="pauseWorkout()" style="font-size:15px;padding:14px">⏸ Pause</button>
+          <button class="btn btn-r" onclick="stopWorkout()"  style="font-size:15px;padding:14px">⏹ Stop</button>
+        </div>
+        <div id="btns-paused" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <button class="btn btn-g" onclick="resumeWorkout()" style="font-size:15px;padding:14px">▶ Resume</button>
+          <button class="btn btn-r" onclick="stopWorkout()"   style="font-size:15px;padding:14px">⏹ Stop & Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">Recent workouts</div>
+    <div class="card" id="recent-list">
+      <div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>
+    </div>
+  </div>
+
+  <!-- ══════════ TRAINING PLAN ══════════ -->
+  <div class="page" id="pg-plan">
+    <div class="sec">Your 5K profile</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+        Enter your current and target 5K times. Training paces are calculated using the Jack Daniels VDOT method.
+      </div>
+      <div class="g2" style="margin-bottom:8px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Current 5K (mm:ss)</div>
+          <input class="num-input" type="text" id="plan-current" placeholder="27:00" oninput="calcPlan()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Target 5K (mm:ss)</div>
+          <input class="num-input" type="text" id="plan-target" placeholder="20:00" oninput="calcPlan()">
+        </div>
+      </div>
+      <div id="plan-vdot" style="font-size:12px;color:var(--muted);min-height:18px"></div>
+    </div>
+
+    <div id="plan-zones" class="hidden">
+      <div class="sec">Training paces</div>
+      <div class="card" id="pace-zones-card"></div>
+      <div class="sec">Weekly structure</div>
+      <div class="card" id="weekly-plan-card"></div>
+      <div class="sec">Time to goal estimate</div>
+      <div class="card" id="goal-timeline-card"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ TRACK (Settings) ══════════ -->
+  <div class="page" id="pg-settings">
+    <div class="sec">Workout settings</div>
+    <div class="card">
+      <div class="tog-row">
+        <span class="tog-label">Activity</span>
+        <div style="display:flex;gap:6px">
+          <button id="btn-run"  class="badge bg-g"  style="cursor:pointer;font-size:12px" onclick="setType('run')">🏃 Run</button>
+          <button id="btn-walk" class="badge bg-gr" style="cursor:pointer;font-size:12px" onclick="setType('walk')">🚶 Walk</button>
+        </div>
+      </div>
+      <div class="tog-row">
+        <span class="tog-label">Distance goal</span>
+        <button class="tog on" id="tog-goal" onclick="toggleGoal()"></button>
+      </div>
+      <div id="goal-wrap" style="margin-top:10px">
+        <div style="display:flex;gap:8px">
+          <input type="number" id="gval" value="5" min="0.1" max="999" step="0.1" oninput="goalChanged()">
+          <select id="gunit" onchange="goalChanged()" style="width:80px">
+            <option value="km">km</option>
+            <option value="mi">mi</option>
+            <option value="m">m</option>
+          </select>
+        </div>
+        <div id="goal-hint" style="font-size:12px;color:var(--muted);margin-top:5px"></div>
+        <div class="sec" style="margin-top:10px">Quick goals</div>
+        <div class="qg">
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(0.1,'km')">100 m</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(0.4,'km')">400 m</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(0.8,'km')">800 m</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(1,'km')">1 km</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(1.609,'km')">1 mile</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(5,'km')">5 km</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(10,'km')">10 km</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(21.097,'km')">Half marathon</button>
+          <button class="badge bg-gr" style="cursor:pointer" onclick="qg(42.195,'km')">Marathon</button>
+        </div>
+      </div>
+      <div class="tog-row" style="margin-top:10px">
+        <span class="tog-label">Body weight (kg)</span>
+        <input type="number" id="weight" value="70" min="30" max="250" step="1"
+               style="width:75px;text-align:center" onchange="DB.set('weight',+this.value)">
+      </div>
+    </div>
+
+    <div class="sec">Your totals</div>
+    <div class="card">
+      <div class="g2">
+        <div class="met"><div class="mval g" id="st-dist">0.0</div><div class="mlab">total km</div></div>
+        <div class="met"><div class="mval b" id="st-wkts">0</div><div class="mlab">workouts</div></div>
+      </div>
+      <div class="g2">
+        <div class="met"><div class="mval w" id="st-cal">0</div><div class="mlab">total kcal</div></div>
+        <div class="met"><div class="mval p" id="st-elev">0</div><div class="mlab">m climbed</div></div>
+      </div>
+      <div class="g2">
+        <div class="met"><div class="mval pk" id="st-bp">--:--</div><div class="mlab">best pace</div></div>
+        <div class="met"><div class="mval" style="color:var(--blue)" id="st-ap">--:--</div><div class="mlab">avg pace</div></div>
+      </div>
+    </div>
+
+    <div class="sec">Weekly km</div>
+    <div class="card">
+      <div class="chart-wrap" style="height:auto;padding-top:10px">
+        <div class="bar-chart" id="wkchart"></div>
+      </div>
+    </div>
+
+    <div class="sec">Data</div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+        Export all workouts, health tests and settings as JSON. Import restores everything.
+      </div>
+      <div class="export-row">
+        <button class="btn btn-s" style="font-size:14px;padding:12px" onclick="exportData()">📤 Export JSON</button>
+        <button class="btn btn-s" style="font-size:14px;padding:12px" onclick="document.getElementById('import-file').click()">📥 Import JSON</button>
+      </div>
+      <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(this)">
+      <div id="export-status" style="font-size:12px;color:var(--muted);margin-top:8px;min-height:16px"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ HEALTH ══════════ -->
+  <div class="page" id="pg-tests">
+    <div class="sec">Your profile</div>
+    <div class="card" style="padding:14px 16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Age</div>
+          <input class="num-input" type="number" id="t-age" placeholder="25" min="10" max="99" onchange="saveProfile()" style="text-align:center">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Gender</div>
+          <select id="t-gender" onchange="saveProfile()" style="background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:9px 4px;color:var(--txt);font-size:12px;width:100%">
+            <option value="m">Male</option>
+            <option value="f">Female</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Weight kg</div>
+          <input class="num-input" type="number" id="t-weight" placeholder="70" min="30" max="250" onchange="saveProfile()" style="text-align:center">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Height cm</div>
+          <input class="num-input" type="number" id="t-height" placeholder="170" min="100" max="250" onchange="saveProfile()" style="text-align:center">
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">Body Composition</div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">BMI</div>
+        <div class="badge bg-gr" style="font-size:10px">Body Mass Index</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Uses weight and height from profile. WHO standard. Doesn't account for muscle mass — pair with Waist-to-Height.</div>
+      <button class="btn btn-g" style="font-size:14px;padding:11px" onclick="calcBMI()">Calculate BMI</button>
+      <div id="res-bmi" class="tres hidden" style="margin-top:10px"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('bmi')">💾 Save</button>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">Waist-to-Height Ratio</div>
+        <div class="badge bg-b" style="font-size:10px">Visceral Fat Risk</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">More accurate than BMI for cardiovascular risk. Measure waist at navel level, relaxed. Keep waist under half your height.</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Waist circumference (cm)</div>
+        <input class="num-input" type="number" id="waist-cm" placeholder="e.g. 80" min="40" max="200" oninput="calcWHR()">
+      </div>
+      <div id="res-whr" class="tres hidden"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('whr')">💾 Save</button>
+    </div>
+
+    <div class="sec">Cardiovascular Fitness</div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">VO2 Max</div>
+        <div class="badge bg-g" style="font-size:10px">Cooper 12-Min Run</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Run as far as possible in exactly 12 minutes on flat ground. Gold standard field test.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Distance (m)</div>
+          <input class="num-input" type="number" id="cooper-m" placeholder="e.g. 2400" min="500" max="6000" step="10" oninput="calcCooper()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Or in km</div>
+          <input class="num-input" type="number" id="cooper-km" placeholder="e.g. 2.4" min="0.5" max="6" step="0.01" oninput="calcCooperKm()">
+        </div>
+      </div>
+      <div id="res-cooper" class="tres hidden"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('cooper')">💾 Save</button>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">VO2 Max</div>
+        <div class="badge bg-b" style="font-size:10px">Resting Heart Rate Method</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">No running needed. Measure resting HR first thing in the morning. Uses Uth–Sørensen formula. Tanaka max HR formula (208 − 0.7 × age) is more accurate than Fox (220 − age).</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Resting HR (bpm)</div>
+          <input class="num-input" type="number" id="rhr-val" placeholder="e.g. 55" min="30" max="120" oninput="calcRHR()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Max HR (bpm)</div>
+          <input class="num-input" type="number" id="mhr-val" placeholder="auto" min="100" max="230" oninput="calcRHR()">
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">Blank → formula</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Max HR formula</div>
+          <select id="mhr-formula" onchange="calcRHR()" style="background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:9px 4px;color:var(--txt);font-size:11px;width:100%">
+            <option value="tanaka">Tanaka (accurate)</option>
+            <option value="fox">Fox 220−age</option>
+          </select>
+        </div>
+      </div>
+      <div id="res-rhr" class="tres hidden"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('rhr')">💾 Save</button>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">Aerobic Fitness</div>
+        <div class="badge bg-p" style="font-size:10px">Rockport 1-Mile Walk</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Walk 1 mile (1.609 km) as fast as possible without running. Measure heart rate immediately at finish. Best for beginners or injury recovery.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Time (min)</div>
+          <input class="num-input" type="number" id="walk-min" placeholder="e.g. 15" min="8" max="40" step="0.1" oninput="calcWalk()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Finish HR (bpm)</div>
+          <input class="num-input" type="number" id="walk-hr" placeholder="e.g. 130" min="60" max="220" oninput="calcWalk()">
+        </div>
+      </div>
+      <div id="res-walk" class="tres hidden"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('walk')">💾 Save</button>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">Resting Heart Rate</div>
+        <div class="badge bg-pk" style="font-size:10px">Cardiovascular Health</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Lower RHR = more efficient heart. Elite athletes often hit 40–50 bpm. Measure in the morning before getting up.</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Resting HR (bpm)</div>
+        <input class="num-input" type="number" id="rhr2-val" placeholder="e.g. 55" min="30" max="120" oninput="calcRHRHealth()">
+      </div>
+      <div id="res-rhr2" class="tres hidden"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('rhr2')">💾 Save</button>
+    </div>
+
+    <div class="sec">Muscular Fitness</div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">Muscular Endurance</div>
+        <div class="badge bg-b" style="font-size:10px">Push-Up Test</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Max push-ups without stopping. Full range — chest to floor, arms fully extended. No knee push-ups. ACSM / US Army standard.</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Push-ups completed</div>
+        <input class="num-input" type="number" id="pushup-n" placeholder="e.g. 30" min="0" max="300" oninput="calcPushup()">
+      </div>
+      <div id="res-pushup" class="tres hidden"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('pushup')">💾 Save</button>
+    </div>
+
+    <div class="sec">Flexibility</div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:17px;font-weight:800">Lower Body Flexibility</div>
+        <div class="badge bg-pk" style="font-size:10px">Sit & Reach Test</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Sit on floor, legs straight. Ruler at feet, zero at toes. Reach forward, hold 2 sec. Enter distance past (+) or short of (−) toes.</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Reach (cm) — + past toes / − short of toes</div>
+        <input class="num-input" type="number" id="reach-cm" placeholder="e.g. +5 or -3" min="-30" max="40" step="0.5" oninput="calcReach()">
+      </div>
+      <div id="res-reach" class="tres hidden"></div>
+      <button class="btn btn-s" style="font-size:13px;padding:10px;margin-top:8px" onclick="saveTest('reach')">💾 Save</button>
+    </div>
+
+    <div class="sec">Test history</div>
+    <div class="card" id="test-hist">
+      <div style="color:var(--muted);text-align:center;padding:14px 0;font-size:14px">No tests saved yet</div>
+    </div>
+  </div>
+
+  <!-- ══════════ BADGES ══════════ -->
+  <div class="page" id="pg-ach">
+    <div class="sec">Distance milestones</div>
+    <div class="card" id="ach-dist"></div>
+    <div class="sec">Elevation milestones</div>
+    <div class="card" id="ach-elev"></div>
+    <div class="sec">Streak</div>
+    <div class="card" id="ach-streak"></div>
+  </div>
+
+  <!-- ══════════ HISTORY ══════════ -->
+  <div class="page" id="pg-hist">
+    <div class="sec">All workouts</div>
+    <div class="card" id="hist-list">
+      <div style="color:var(--muted);text-align:center;padding:16px 0;font-size:14px">No workouts yet</div>
+    </div>
+    <div class="sec">Personal records</div>
+    <div class="card" id="pr-card">
+      <div style="color:var(--muted);font-size:13px">Complete workouts to see records.</div>
+    </div>
+  </div>
+
+</div><!-- /.app -->
+
+<!-- ══════════ BOTTOM NAV ══════════ -->
+<nav class="nav">
+  <button class="nb active" onclick="showPage('pg-home')"     id="nb-home">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+  </button>
+  <button class="nb" onclick="showPage('pg-plan')" id="nb-plan">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Train
+  </button>
+  <button class="nb" onclick="showPage('pg-settings')" id="nb-settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 104.93 19.07M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Track
+  </button>
+  <button class="nb" onclick="showPage('pg-tests')" id="nb-tests">
+    <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Health
+  </button>
+  <button class="nb" onclick="showPage('pg-ach')" id="nb-ach">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>Badges
+  </button>
+  <button class="nb" onclick="showPage('pg-hist')" id="nb-hist">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>History
+  </button>
+</nav>
+
+<!-- ══════════ MODALS ══════════ -->
+<div class="overlay hidden" id="goal-modal">
+  <div class="modal">
+    <div style="font-size:52px">🏁</div>
+    <h2>Goal Reached!</h2>
+    <p id="goal-modal-txt">You crushed it!</p>
+    <button class="btn btn-g" onclick="closeModal('goal-modal')">Keep going!</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="ach-modal">
+  <div class="modal">
+    <div style="font-size:52px" id="am-icon">🏆</div>
+    <h2 id="am-title">Achievement!</h2>
+    <p id="am-desc">You did it!</p>
+    <button class="btn btn-g" onclick="closeModal('ach-modal')">Awesome!</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="save-modal">
+  <div class="modal">
+    <div style="font-size:52px">💾</div>
+    <h2>Workout Saved!</h2>
+    <p id="save-modal-txt">Nice work!</p>
+    <button class="btn btn-g" onclick="closeModal('save-modal')">Great!</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="del-modal">
+  <div class="modal">
+    <div style="font-size:52px">🗑️</div>
+    <h2>Delete workout?</h2>
+    <p>This can't be undone.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button class="btn btn-s" onclick="closeModal('del-modal')">Cancel</button>
+      <button class="btn btn-r" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ JS — load order matters ══════════
+     core.js      → DB, haversine, calcCal, fmt*, parseMMSS, setText
+     data.js      → saveRecord, updateStats, ACH_*, checkAch, showAchModal,
+                    promptDelete, confirmDelete, exportData, importData
+     render.js    → refreshAll, getRank, renderHome, renderSettings,
+                    renderWeeklyChart, renderAchievements, renderHistory,
+                    showRouteModal, renderPersonalRecords
+     workout.js   → mode, GPS, CADENCE, W, startWorkout … saveManual
+     health.js    → getProfile, saveProfile, loadProfile, calcBMI … renderTestHist
+     training.js  → VDOT_TABLE, vdotFrom5k, trainingPaces, calcPlan
+     app glue     → confetti, showPage, closeModal, settings helpers, init
+================================================ -->
+<script src="core.js"></script>
+<script src="data.js"></script>
+<script src="render.js"></script>
+<script src="workout.js"></script>
+<script src="health.js"></script>
+<script src="training.js"></script>
+
+<script>
+'use strict';
+// ══════════════════════════════════════════
+// APP GLUE — everything that doesn't belong
+// in a domain module: nav, settings helpers,
+// confetti, PWA manifest, and init.
+// ══════════════════════════════════════════
+
+// ── Offline banner ────────────────────────
+function updateOnlineStatus() {
+  const el = document.getElementById('offline-banner');
+  navigator.onLine ? el.classList.remove('show') : el.classList.add('show');
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// ── Navigation ────────────────────────────
+const PAGE_MAP = {
+  'pg-home': 'nb-home', 'pg-plan': 'nb-plan', 'pg-settings': 'nb-settings',
+  'pg-tests': 'nb-tests', 'pg-ach': 'nb-ach', 'pg-hist': 'nb-hist',
+};
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById(PAGE_MAP[id]).classList.add('active');
+  if (id === 'pg-settings') renderSettings();
+  if (id === 'pg-ach')      renderAchievements();
+  if (id === 'pg-hist')     renderHistory();
+  if (id === 'pg-tests')    renderTestHist();
+}
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+// ── Settings helpers ──────────────────────
+let goalEnabled = true;
+
+function setType(t) {
+  W.type = t;
+  document.getElementById('btn-run').className  = 'badge ' + (t === 'run'  ? 'bg-g' : 'bg-gr');
+  document.getElementById('btn-walk').className = 'badge ' + (t === 'walk' ? 'bg-b' : 'bg-gr');
+}
+function toggleGoal() {
+  goalEnabled = !goalEnabled;
+  document.getElementById('tog-goal').className = 'tog' + (goalEnabled ? ' on' : '');
+  document.getElementById('goal-wrap').style.display = goalEnabled ? 'block' : 'none';
+}
+function goalChanged() {
+  const v  = parseFloat(document.getElementById('gval').value) || 5;
+  const u  = document.getElementById('gunit').value;
+  const km = u === 'km' ? v : u === 'mi' ? v * 1.60934 : v / 1000;
+  document.getElementById('goal-hint').textContent = '= ' + km.toFixed(3) + ' km';
+}
+function getGoalKm() {
+  const v = parseFloat(document.getElementById('gval').value) || 5;
+  const u = document.getElementById('gunit').value;
+  return u === 'km' ? v : u === 'mi' ? v * 1.60934 : v / 1000;
+}
+function qg(v, u) {
+  document.getElementById('gval').value = v;
+  document.getElementById('gunit').value = u;
+  goalChanged();
+}
+
+// ── Confetti ──────────────────────────────
+function confetti() {
+  const c = document.createElement('div'); c.className = 'conf'; document.body.appendChild(c);
+  const cols = ['#00e5a0','#4a9eff','#f5a623','#ff6bab','#8b6dff','#fff'];
+  for (let i = 0; i < 45; i++) {
+    const p = document.createElement('div'); p.className = 'cp';
+    p.style.cssText = `left:${5 + Math.random()*90}%;top:-12px;background:${cols[i%6]};`
+      + `animation-delay:${Math.random()*.6}s;animation-duration:${1.6+Math.random()*.8}s;`
+      + `transform:scale(${.6+Math.random()*.8});border-radius:${Math.random()>.5?'50%':'3px'}`;
+    c.appendChild(p);
+  }
+  setTimeout(() => c.remove(), 3200);
+}
+
+// ── PWA manifest (inline blob) ────────────
+function injectManifest() {
+  const manifest = {
+    name: 'Stride', short_name: 'Stride',
+    description: 'GPS running tracker & health tests',
+    start_url: './', display: 'standalone',
+    background_color: '#0d0f12', theme_color: '#00e5a0',
+    icons: [{ src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%230d0f12"/><text y=".9em" font-size="80">🏃</text></svg>', sizes: 'any', type: 'image/svg+xml' }],
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  const link = document.createElement('link');
+  link.rel = 'manifest'; link.href = URL.createObjectURL(blob);
+  document.head.appendChild(link);
+}
+
+// ── Init ──────────────────────────────────
+function loadAppState() {
+  // Header date
+  document.getElementById('td').textContent =
+    new Date().toLocaleDateString('en-IN', { weekday:'long', month:'long', day:'numeric' });
+
+  // Default manual date to today
+  document.getElementById('m-date').value = new Date().toISOString().slice(0, 10);
+
+  // Restore weight input
+  document.getElementById('weight').value = DB.get('weight', 70);
+
+  // Goal calc
+  goalChanged();
+
+  // Load profile fields
+  loadProfile();
+
+  // Restore saved 5K time in training tab
+  const saved5k = DB.get('plan-5k-current', '');
+  if (saved5k) document.getElementById('plan-current').value = saved5k;
+  document.getElementById('plan-current').addEventListener('change', e => DB.set('plan-5k-current', e.target.value));
+
+  // Connectivity
+  updateOnlineStatus();
+
+  // Render all tabs
+  refreshAll();
+
+  // PWA
+  injectManifest();
+
+  // Check existing GPS permission (saves needing to tap the button again)
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: 'geolocation' }).then(r => {
+      if (r.state === 'granted') {
+        gpsGranted = true;
+        setPill('gps-ok', '✅ GPS already allowed');
+        document.getElementById('gps-req-btn').textContent = '✅ GPS Already Granted';
+        document.getElementById('gps-req-btn').classList.add('hidden');
+        document.getElementById('btn-start').disabled = false;
+        navigator.geolocation.getCurrentPosition(
+          p => setPill('gps-ok', `✅ GPS ready ±${Math.round(p.coords.accuracy)}m`),
+          () => {},
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
+        );
+      } else if (r.state === 'denied') {
+        setPill('gps-err', '❌ GPS blocked');
+        setGPSMsg('GPS was denied. Open Chrome ⋮ → Settings → Site Settings → Location → Allow. Use Manual mode for now.');
+      }
+    }).catch(() => {});
+  }
+}
+
+loadAppState();
+</script>
+</body>
+</html>

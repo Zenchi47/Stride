@@ -1,0 +1,229 @@
+/* ══════════════════════════════════════════
+   STRIDE — styles.css
+   Sections: Reset · Tokens · Layout · Nav ·
+             Cards · Buttons · Badges · Forms ·
+             Components · Pages · Animations
+══════════════════════════════════════════ */
+
+/* ── Reset ── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+/* ── Design tokens ── */
+:root{
+  --bg:#0d0f12;
+  --surf:#16191f;
+  --surf2:#1e222a;
+  --surf3:#252932;
+  --bdr:rgba(255,255,255,0.08);
+  --bdr2:rgba(255,255,255,0.14);
+  --txt:#f0f2f5;
+  --muted:#8b9098;
+  --green:#00e5a0;
+  --blue:#4a9eff;
+  --purple:#8b6dff;
+  --pink:#ff6bab;
+  --warn:#f5a623;
+  --red:#ff5555;
+}
+
+/* ── Base ── */
+html,body{
+  height:100%;
+  background:var(--bg);
+  color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+
+/* ── App shell ── */
+.app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:72px}
+
+/* ── Top bar ── */
+.topbar{padding:16px 20px 8px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:22px;font-weight:800;color:var(--green);letter-spacing:-.5px}
+.streak{font-size:12px;font-weight:600;background:rgba(245,166,35,.15);color:var(--warn);padding:4px 10px;border-radius:100px}
+
+/* ── Bottom nav ── */
+.nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:480px;max-width:100vw;
+  background:var(--surf);border-top:.5px solid var(--bdr2);
+  display:flex;z-index:100;
+}
+.nb{
+  flex:1;padding:11px 4px 7px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;cursor:pointer;
+  color:var(--muted);font-size:10px;transition:color .15s;
+}
+.nb.active{color:var(--green)}
+.nb svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── Pages ── */
+.page{display:none;padding:0 16px}
+.page.active{display:block}
+
+/* ── Cards ── */
+.card{background:var(--surf);border:.5px solid var(--bdr);border-radius:14px;padding:16px;margin-bottom:12px}
+.sec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:18px 0 8px}
+
+/* ── Metric grid ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.met{background:var(--surf2);border-radius:10px;padding:12px}
+.mval{font-size:20px;font-weight:700;line-height:1.1}
+.mval.g{color:var(--green)}.mval.b{color:var(--blue)}
+.mval.w{color:var(--warn)}.mval.p{color:var(--purple)}.mval.pk{color:var(--pink)}
+.mlab{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ── Timer ── */
+.timer-wrap{text-align:center;padding:18px 0 10px}
+.timer{font-size:60px;font-weight:800;letter-spacing:-2px;line-height:1}
+.timer-sub{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* ── Status dot ── */
+.sdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+.sdot.on{background:var(--green);animation:blink 1.4s infinite}
+.sdot.off{background:var(--muted)}
+
+/* ── Goal progress bar ── */
+.gbar-bg{background:var(--surf3);border-radius:100px;height:8px;overflow:hidden;margin:8px 0 3px}
+.gbar{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--green),var(--blue));transition:width .4s}
+
+/* ── Buttons ── */
+.btn{display:block;width:100%;padding:15px;border-radius:12px;border:none;cursor:pointer;font-size:16px;font-weight:600;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-g{background:var(--green);color:#000}
+.btn-r{background:var(--red);color:#fff}
+.btn-s{background:var(--surf2);color:var(--txt);border:.5px solid var(--bdr2)}
+.btn-b{background:var(--blue);color:#fff}
+.btn-o{background:var(--warn);color:#000}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* ── Badges ── */
+.badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600}
+.bg-g{background:rgba(0,229,160,.15);color:var(--green)}
+.bg-b{background:rgba(74,158,255,.15);color:var(--blue)}
+.bg-w{background:rgba(245,166,35,.15);color:var(--warn)}
+.bg-gr{background:rgba(255,255,255,.07);color:var(--muted)}
+.bg-p{background:rgba(139,109,255,.15);color:var(--purple)}
+.bg-pk{background:rgba(255,107,171,.15);color:var(--pink)}
+
+/* ── GPS mode card ── */
+.mode-card{background:var(--surf2);border:.5px solid var(--bdr2);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.mode-row{display:flex;gap:8px;margin-bottom:8px}
+.mode-btn{flex:1;padding:10px 6px;border-radius:10px;border:.5px solid var(--bdr2);background:var(--surf3);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+.mode-btn.sel{background:rgba(0,229,160,.15);color:var(--green);border-color:var(--green)}
+.gps-pill{font-size:11px;padding:5px 10px;border-radius:100px;display:inline-block;font-weight:600}
+.gps-ok{background:rgba(0,229,160,.12);color:var(--green)}
+.gps-warn{background:rgba(245,166,35,.12);color:var(--warn)}
+.gps-err{background:rgba(255,85,85,.12);color:var(--red)}
+
+/* ── Manual input ── */
+.manual-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.num-input{background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:10px;color:var(--txt);font-size:15px;font-weight:600;width:100%;text-align:center}
+.num-input:focus{outline:none;border-color:var(--green)}
+
+/* ── Terrain picker ── */
+.terrain-btn{background:var(--surf3);border:.5px solid var(--bdr2);border-radius:10px;padding:8px 4px;color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center;line-height:1.4}
+.terrain-btn.sel{background:rgba(0,229,160,.12);border-color:var(--green);color:var(--green)}
+
+/* ── Achievements ── */
+.ach{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:.5px solid var(--bdr)}
+.ach:last-child{border-bottom:none;padding-bottom:0}
+.ach-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ach-ico.e{background:rgba(0,229,160,.12)}
+.ach-ico.l{background:var(--surf2);filter:grayscale(1) opacity(.35)}
+.ach-title{font-size:14px;font-weight:600}
+.ach-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.ach-date{font-size:11px;color:var(--green);margin-top:2px}
+.prog-bg{background:var(--surf3);border-radius:100px;height:4px;overflow:hidden;margin-top:5px}
+.prog-bar{height:100%;border-radius:100px;background:var(--muted)}
+
+/* ── Workout history row ── */
+.wrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:.5px solid var(--bdr)}
+.wrow:last-child{border-bottom:none}
+.wico{width:40px;height:40px;border-radius:10px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.winfo{flex:1}
+.wtitle{font-size:14px;font-weight:600}
+.wsub{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ── Forms ── */
+input[type=number],select{background:var(--surf2);border:.5px solid var(--bdr2);border-radius:8px;padding:10px 12px;color:var(--txt);font-size:15px;width:100%}
+input[type=number]:focus,select:focus{outline:none;border-color:var(--green)}
+
+/* ── Toggle row ── */
+.tog-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:.5px solid var(--bdr)}
+.tog{width:44px;height:24px;border-radius:100px;background:var(--surf3);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--green)}
+.tog::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s}
+.tog.on::after{left:23px}
+.qg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+
+/* ── Chart ── */
+.chart-wrap{position:relative;height:160px;margin-top:8px}
+.bar-chart{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;height:140px;padding:0 4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.bar-val{font-size:10px;color:var(--muted);margin-bottom:4px;min-height:12px}
+.bar-fill{width:100%;max-width:28px;background:var(--green);border-radius:6px 6px 0 0;transition:height .4s;min-height:2px}
+.bar-day{font-size:11px;color:var(--muted);margin-top:6px}
+.bar-day.today{color:var(--green);font-weight:700}
+
+/* ── Modal ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--surf);border:.5px solid var(--bdr2);border-radius:18px;padding:28px 24px;width:100%;max-width:400px;text-align:center}
+.modal h2{font-size:20px;font-weight:700;margin:10px 0 8px}
+.modal p{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.5}
+.hidden{display:none!important}
+
+/* ── Offline banner ── */
+.offline-banner{display:none;align-items:center;gap:8px;background:rgba(245,166,35,.12);color:var(--warn);font-size:12px;font-weight:600;padding:8px 12px;border-radius:10px;margin:0 16px 10px}
+.offline-banner.show{display:flex}
+
+/* ── Lap toast ── */
+.lap-toast{
+  position:fixed;top:80px;left:50%;transform:translateX(-50%);
+  background:var(--surf);border:.5px solid var(--green);border-radius:12px;
+  padding:12px 20px;font-size:14px;font-weight:600;color:var(--green);
+  z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;
+  white-space:nowrap;box-shadow:0 4px 20px rgba(0,229,160,.2);
+}
+.lap-toast.show{opacity:1}
+
+/* ── Training plan pace zones ── */
+.pace-zone{border-radius:10px;padding:12px;margin-bottom:8px}
+.pace-zone-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.pace-zone-val{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.pace-zone-desc{font-size:11px;margin-top:4px;opacity:.75;line-height:1.5}
+
+/* ── Delete button ── */
+.del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px;transition:color .15s}
+.del-btn:hover{color:var(--red)}
+
+/* ── Export row ── */
+.export-row{display:flex;gap:8px;margin-top:10px}
+
+/* ── Date picker ── */
+.date-row{display:flex;gap:8px;margin-bottom:8px}
+.date-row input[type=date]{background:var(--surf3);border:.5px solid var(--bdr2);border-radius:8px;padding:10px;color:var(--txt);font-size:13px;width:100%;color-scheme:dark}
+.date-row input[type=date]:focus{outline:none;border-color:var(--green)}
+
+/* ── Step row ── */
+.step-row{display:flex;align-items:center;gap:8px;background:var(--surf3);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+
+/* ── Rank colours ── */
+.rank-s{color:#ffd700}.rank-a{color:#c0c0c0}.rank-b{color:#cd7f32}
+.rank-c{color:var(--blue)}.rank-d{color:var(--muted)}
+
+/* ── Cadence ring ── */
+.cadence-ring{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:2px solid var(--surf3);font-size:11px;font-weight:700;flex-shrink:0}
+
+/* ── Route map (post-workout SVG) ── */
+.route-map{background:var(--surf2);border-radius:10px;overflow:hidden;margin-top:10px}
+.route-map svg{display:block;width:100%;height:120px}
+
+/* ── Animations ── */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes fall{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+/* ── Confetti ── */
+.conf{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:999}
+.cp{position:absolute;width:8px;height:8px;animation:fall 2.2s ease-in forwards}
