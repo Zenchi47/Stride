@@ -720,6 +720,24 @@ function loadAppState() {
   // PWA
   injectManifest();
 
+  // Proactive storage warning — catch a near-full quota before a save
+  // silently fails mid-workout, rather than only reacting after it does.
+  // Shown at most once per day so it doesn't nag on every load.
+  try {
+    if (DB.usageRatio() > 0.8) {
+      const lastWarn = DB.get('storageWarnDate', null);
+      const today = new Date().toDateString();
+      if (lastWarn !== today) {
+        DB.set('storageWarnDate', today);
+        alert(
+          '⚠️ Storage is getting full on this device.\n\n' +
+          'Export your data soon (Track tab → Export JSON) and consider deleting ' +
+          'some old workouts, or future saves may fail.'
+        );
+      }
+    }
+  } catch (_) {}
+
   // Check existing GPS permission (saves needing to tap the button again)
   if (navigator.permissions && navigator.permissions.query) {
     navigator.permissions.query({ name: 'geolocation' }).then(r => {
