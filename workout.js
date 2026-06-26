@@ -69,6 +69,12 @@ function askGPS() {
 }
 
 // ── Cadence via DeviceMotion ──────────────
+// iOS 13+ requires an explicit DeviceMotionEvent.requestPermission() call,
+// triggered by a user gesture, before 'devicemotion' will ever fire.
+// Without this, the code would just silently never receive events on
+// iPhone — cadence/step count would sit at "--"/0 forever with no
+// indication of why. Android (and older iOS/desktop) doesn't have this
+// API at all, so requestPermission is only called when it actually exists.
 const CADENCE = {
   stepCount: 0,
   stepTimes: [],
@@ -77,9 +83,44 @@ const CADENCE = {
   cooldown: 250,    // ms minimum between steps
   lastStep: 0,
   motionHandler: null,
+  permissionState: 'unknown', // 'unknown' | 'granted' | 'denied' | 'unsupported'
 
-  start() {
-    if (!window.DeviceMotionEvent) return;
+  // Must be called from a user-gesture handler (e.g. the Start button tap)
+  // on iOS, or the permission prompt will not appear at all.
+  async requestPermission() {
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      try {
+        const result = await DeviceMotionEvent.requestPermission();
+        this.permissionState = result === 'granted' ? 'granted' : 'denied';
+      } catch (_) {
+        this.permissionState = 'denied';
+      }
+    } else if (window.DeviceMotionEvent) {
+      // No requestPermission() needed (Android, older iOS, desktop) —
+      // motion events work without an explicit prompt.
+      this.permissionState = 'granted';
+    } else {
+      this.permissionState = 'unsupported';
+    }
+    return this.permissionState;
+  },
+
+  // Returns true if cadence tracking actually started, false otherwise —
+  // callers can use this to show a clear message instead of a silent "--".
+  async start() {
+    if (this.permissionState === 'unknown') await this.requestPermission();
+
+    if (this.permissionState !== 'granted') {
+      const hint = document.getElementById('cadence-hint');
+      if (this.permissionState === 'denied') {
+        hint.textContent = 'Motion permission denied — steps unavailable. Re-enable in Settings → Safari → Motion & Orientation Access.';
+      } else {
+        hint.textContent = 'Step/cadence tracking is not supported on this device.';
+      }
+      hint.style.color = 'var(--warn)';
+      return false;
+    }
+
     this.stepCount = 0; this.stepTimes = []; this.lastMag = 0; this.lastStep = 0;
     this.motionHandler = (e) => {
       const acc = e.accelerationIncludingGravity;
@@ -98,6 +139,7 @@ const CADENCE = {
       this.lastMag = mag;
     };
     window.addEventListener('devicemotion', this.motionHandler, { passive: true });
+    return true;
   },
 
   stop() {
@@ -426,8 +468,12 @@ function saveManual() {
   const dateVal    = document.getElementById('m-date').value;
   const workoutDate = dateVal ? new Date(dateVal + 'T12:00:00').toISOString() : new Date().toISOString();
 
-  saveRecord({ type, distKm, elapsedSec, cal, elevUp, elevDown, avgPace, bestPace: avgPace,
+  const saved = saveRecord({ type, distKm, elapsedSec, cal, elevUp, elevDown, avgPace, bestPace: avgPace,
     terrain: currentTerrain, goalKm: null, goalReached: false, source: 'manual' }, workoutDate);
+
+  // saveRecord() already showed a storage-error alert if this failed —
+  // don't also show the "Saved!" success modal in that case.
+  if (!saved) return;
 
   document.getElementById('m-dist').value = '';
   document.getElementById('m-dur').value  = '';
