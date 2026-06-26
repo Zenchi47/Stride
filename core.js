@@ -4,17 +4,41 @@
 'use strict';
 
 // ── LocalStorage wrapper ──────────────────
+// save() now returns true/false instead of silently swallowing failures.
+// If localStorage is full or unavailable, every write-returning method
+// (set/push/load) reports false so the caller can warn the user instead
+// of showing a "Saved!" confirmation for data that never persisted.
 const DB = (() => {
   const KEY = 'stride_v4';
   let d = {};
   try { const s = localStorage.getItem(KEY); if (s) d = JSON.parse(s); } catch (_) {}
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (_) {} };
+  let lastError = null;
+  const save = () => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(d));
+      lastError = null;
+      return true;
+    } catch (err) {
+      lastError = err;
+      return false;
+    }
+  };
   return {
     get:  (k, def = null) => k in d ? d[k] : def,
-    set:  (k, v) => { d[k] = v; save(); },
-    push: (k, v) => { if (!d[k]) d[k] = []; d[k].push(v); save(); },
+    set:  (k, v) => { d[k] = v; return save(); },
+    push: (k, v) => { if (!d[k]) d[k] = []; d[k].push(v); return save(); },
     all:  () => d,
-    load: (obj) => { d = obj; save(); },
+    load: (obj) => { d = obj; return save(); },
+    // Rough estimate of how full storage is (0–1). Used to warn before
+    // the quota is actually hit, not just after a write fails.
+    usageRatio: () => {
+      try {
+        const bytes = new Blob([JSON.stringify(d)]).size;
+        return bytes / (5 * 1024 * 1024); // assume a conservative 5MB quota
+      } catch (_) { return 0; }
+    },
+    lastErrorMsg: () => lastError ? (lastError.name === 'QuotaExceededError'
+      ? 'Storage is full on this device.' : lastError.message) : null,
   };
 })();
 
