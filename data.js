@@ -4,39 +4,78 @@
 // Depends on: core.js
 // ══════════════════════════════════════════
 
+// ── Storage-failure warning ───────────────
+// Shown whenever a DB write fails (almost always a full localStorage
+// quota). Reuses the existing alert() pattern already used elsewhere in
+// the app for consistency, rather than introducing a new UI pattern.
+function showStorageError() {
+  const msg = DB.lastErrorMsg() || 'Storage is full on this device.';
+  alert(
+    '⚠️ Save failed: ' + msg + '\n\n' +
+    'Your data was NOT saved. Free up space by exporting and then deleting ' +
+    'some old workouts (Track tab → Export JSON, then delete entries from History), ' +
+    'or clearing space elsewhere on your device.'
+  );
+}
+
 // ── Save a completed workout ──────────────
+// Returns true if the workout was actually persisted to storage. Callers
+// (saveManual, stopWorkout) must check this before showing a "Saved!"
+// modal or confetti — otherwise a full-storage device would celebrate
+// a save that silently never happened.
 function saveRecord(rec, dateOverride) {
   rec.id   = Date.now();
   rec.date = dateOverride || new Date().toISOString();
-  DB.push('workouts', rec);
+  const ok = DB.push('workouts', rec);
+  if (!ok) { showStorageError(); return false; }
   const stats  = updateStats(rec, dateOverride);
   const newAchs = checkAch(rec.distKm, stats.totalDistKm, stats.totalElevM, stats.streak);
   refreshAll();
   if (newAchs.length) setTimeout(() => showAchModal(newAchs[0]), 500);
+  return true;
+}
+
+// ── Recalculate every aggregate stat from the full workout list ──
+// This is the single source of truth for stats — it never trusts a
+// previous "lastDate"/"streak" value, so it can't be corrupted by the
+// order workouts were saved in. Manually backdating an earlier workout
+// after a later one is saved is fully safe: the streak is always
+// recomputed from the complete, sorted set of workout dates.
+function rebuildStats() {
+  const wkts = DB.get('workouts', []);
+  const fresh = { totalDistKm:0, totalCal:0, totalElevM:0, totalSec:0, workouts:0, bestPace:null, streak:0, lastDate:null };
+
+  for (const w of wkts) {
+    fresh.totalDistKm += w.distKm;
+    fresh.totalCal    += w.cal;
+    fresh.totalElevM  += w.elevUp || 0;
+    fresh.totalSec    += w.elapsedSec;
+    fresh.workouts++;
+    if (!fresh.bestPace || (w.bestPace > 0 && w.bestPace < fresh.bestPace)) fresh.bestPace = w.bestPace;
+  }
+
+  if (wkts.length > 0) {
+    const dates = [...new Set(wkts.map(w => new Date(w.date).toDateString()))]
+      .sort((a, b) => new Date(a) - new Date(b));
+    let streak = 1;
+    for (let i = 1; i < dates.length; i++) {
+      const diff = (new Date(dates[i]) - new Date(dates[i - 1])) / 86400000;
+      streak = diff === 1 ? streak + 1 : 1;
+    }
+    const today = new Date().toDateString();
+    const yest  = new Date(Date.now() - 86400000).toDateString();
+    const lastDate = dates[dates.length - 1];
+    fresh.streak   = lastDate === today || lastDate === yest ? streak : 0;
+    fresh.lastDate = lastDate;
+  }
+
+  return fresh;
 }
 
 // ── Update aggregate stats ────────────────
+// Returns the new stats object, or null if the write failed (storage full).
 function updateStats(rec, dateOverride) {
-  const stats = DB.get('stats', {
-    totalDistKm: 0, totalCal: 0, totalElevM: 0, totalSec: 0,
-    workouts: 0, bestPace: null, streak: 0, lastDate: null,
-  });
-  stats.totalDistKm += rec.distKm;
-  stats.totalCal    += rec.cal;
-  stats.totalElevM  += rec.elevUp;
-  stats.totalSec    += rec.elapsedSec;
-  stats.workouts    += 1;
-  if (!stats.bestPace || (rec.bestPace > 0 && rec.bestPace < stats.bestPace)) stats.bestPace = rec.bestPace;
-
-  // Streak — use the actual workout date for manual entries
-  const workoutDate = dateOverride ? new Date(dateOverride).toDateString() : new Date().toDateString();
-  if (stats.lastDate !== workoutDate) {
-    const lastD = stats.lastDate ? new Date(stats.lastDate) : null;
-    const workD = dateOverride ? new Date(dateOverride) : new Date();
-    const diff  = lastD ? Math.round((workD - lastD) / 86400000) : 999;
-    stats.streak   = diff === 1 ? stats.streak + 1 : 1;
-    stats.lastDate = workoutDate;
-  }
+  const stats = rebuildStats();
   DB.set('stats', stats);
   return stats;
 }
@@ -86,43 +125,40 @@ function showAchModal(a) {
   document.getElementById('ach-modal').classList.remove('hidden');
 }
 
-// ── Delete workout ────────────────────────
-let pendingDeleteId = null;
+// ── Delete workout or saved test result ───
+// pendingDelete carries both the id and which collection it belongs to,
+// so the same confirmation modal (#del-modal) can be reused for deleting
+// either a workout or a saved health test result.
+let pendingDelete = null;
 
-function promptDelete(id) {
-  pendingDeleteId = id;
-  document.getElementById('del-modal').classList.remove('hidden');
+function promptDelete(id, type) {
+  pendingDelete = { id, type: type || 'workout' };
+  const modal = document.getElementById('del-modal');
+  const title = modal.querySelector('h2');
+  if (title) title.textContent = pendingDelete.type === 'test' ? 'Delete saved result?' : 'Delete workout?';
+  modal.classList.remove('hidden');
 }
 
 function confirmDelete() {
-  if (pendingDeleteId === null) return;
-  const wkts = DB.get('workouts', []).filter(w => w.id !== pendingDeleteId);
-  DB.set('workouts', wkts);
+  if (!pendingDelete) return;
+  const { id, type } = pendingDelete;
+  let ok1 = true, ok2 = true;
 
-  // Recalculate stats from scratch
-  const fresh = { totalDistKm:0, totalCal:0, totalElevM:0, totalSec:0, workouts:0, bestPace:null, streak:0, lastDate:null };
-  for (const w of wkts) {
-    fresh.totalDistKm += w.distKm; fresh.totalCal  += w.cal;
-    fresh.totalElevM  += w.elevUp || 0; fresh.totalSec  += w.elapsedSec;
-    fresh.workouts++;
-    if (!fresh.bestPace || (w.bestPace > 0 && w.bestPace < fresh.bestPace)) fresh.bestPace = w.bestPace;
+  if (type === 'test') {
+    const recs = DB.get('testResults', []).filter(r => r.id !== id);
+    ok1 = DB.set('testResults', recs);
+  } else {
+    const wkts = DB.get('workouts', []).filter(w => w.id !== id);
+    ok1 = DB.set('workouts', wkts);
+    const fresh = rebuildStats();
+    ok2 = DB.set('stats', fresh);
   }
-  if (wkts.length > 0) {
-    const dates = [...new Set(wkts.map(w => new Date(w.date).toDateString()))].sort((a, b) => new Date(a) - new Date(b));
-    let streak = 1;
-    for (let i = 1; i < dates.length; i++) {
-      const diff = (new Date(dates[i]) - new Date(dates[i-1])) / 86400000;
-      streak = diff === 1 ? streak + 1 : 1;
-    }
-    const today = new Date().toDateString(), yest = new Date(Date.now() - 86400000).toDateString();
-    const lastDate = dates[dates.length - 1];
-    fresh.streak   = lastDate === today || lastDate === yest ? streak : 0;
-    fresh.lastDate = lastDate;
-  }
-  DB.set('stats', fresh);
-  pendingDeleteId = null;
+
+  pendingDelete = null;
   closeModal('del-modal');
+  if (!ok1 || !ok2) showStorageError();
   refreshAll();
+  if (type === 'test') renderTestHist();
 }
 
 // ── Export / Import ───────────────────────
@@ -143,7 +179,9 @@ function importData(input) {
     try {
       const obj = JSON.parse(e.target.result);
       if (!obj.workouts && !obj.stats) throw new Error('Invalid Stride backup file');
-      DB.load(obj); refreshAll();
+      const ok = DB.load(obj);
+      if (!ok) throw new Error(DB.lastErrorMsg() || 'Storage is full on this device.');
+      refreshAll();
       document.getElementById('export-status').textContent =
         '✅ Import successful — ' + ((obj.workouts || []).length) + ' workouts loaded';
       setTimeout(() => document.getElementById('export-status').textContent = '', 4000);
