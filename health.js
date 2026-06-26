@@ -243,7 +243,8 @@ function saveTest(type) {
   const res = lastResults[type];
   if (!res) { alert('Calculate a result first.'); return; }
   const profile = getProfile();
-  DB.push('testResults', { id: Date.now(), date: new Date().toISOString(), type, profile, ...res });
+  const ok = DB.push('testResults', { id: Date.now(), date: new Date().toISOString(), type, profile, ...res });
+  if (!ok) { showStorageError(); return; }
   renderTestHist();
   confetti();
   alert('Result saved! ✅');
@@ -280,6 +281,7 @@ function renderTestHist() {
         <div class="wsub">${m.val(r)}</div>
         <div class="wsub">${lbl} · Age ${r.profile?.age || '?'} · ${r.profile?.gender === 'f' ? 'Female' : 'Male'}</div>
       </div>
+      <button class="del-btn" onclick="promptDelete(${r.id}, 'test')" title="Delete">🗑️</button>
     </div>`;
   }).join('');
 }
