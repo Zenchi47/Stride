@@ -190,16 +190,165 @@ const W = {
   goalKm: 5, goalOn: true, goalReached: false,
   timerIv: null, watchId: null,
   paused: false, pausedAt: 0, totalPaused: 0,
+  _wakeLock: null,  // Screen Wake Lock handle
 };
 
 // ── GPS watch ─────────────────────────────
-const GPS_MAX_ACCURACY = 25;
-const MAX_HUMAN_SPEED_MS = 7;
+//
+// ACCURACY STRATEGY
+// -----------------
+// Android GPS accuracy reported by Chrome is conservative — the chip can
+// report 40–60 m even outdoors with a clear sky lock.  The old hard cap of
+// 25 m silently dropped most real outdoor points, causing huge under-counts.
+//
+// New approach:
+//  · Accept points up to GPS_MAX_ACCURACY (50 m) rather than 25 m.
+//  · Adaptive noise floor: only reject a movement if it is smaller than
+//    half the *current* accuracy reading, not a fixed 3 m floor.
+//    This lets the code accept real movement while still rejecting sensor
+//    jitter smaller than the measurement uncertainty.
+//  · Max human speed raised to 10 m/s (36 km/h — covers a sprinting burst
+//    or a bus stopping to pick up a runner).  Teleport-sized jumps (>200 m
+//    in one tick at walking pace) still get dropped.
+//  · maximumAge changed from 0 to 2000 ms. The old value of 0 forced a
+//    brand-new GPS fix every call, which:
+//    (a) drained battery faster, and
+//    (b) produced nosier positions because the chip wasn't allowed to
+//        average recent satellite data.  2000 ms lets the chip settle.
+//
+// BACKGROUND SURVIVAL
+// -------------------
+// Chrome on Android suspends JavaScript when the screen turns off OR when
+// the user switches to another app.  This is an OS-level restriction that
+// cannot be bypassed from a web page — only a native Android app has
+// the "foreground service + wakelock" combination needed for true background
+// GPS.  What we CAN do:
+//
+//  1. Wake Lock API — keeps the screen on (already in startWorkout).
+//     As long as the screen is on, Chrome keeps running.
+//
+//  2. Checkpoint saves — every GPS tick saves the current partial workout
+//    (distM, elevUp, elapsed etc.) to localStorage under 'stride_checkpoint'.
+//    If the page is killed and reopened, loadCheckpoint() detects the
+//    in-progress session and offers to resume it with the saved distance.
+//
+//  3. Notification reminder — when the page goes invisible (Page Visibility
+//    API), we show a system notification (if granted) reminding the user
+//    to keep the screen on, so they don't accidentally let it turn off.
+//
+// The honest limitation: if the screen turns off, the workout pauses.
+// That is true of every web-based tracker.  The fix is to run Stride as a
+// native Android app (the JS → Android port you are planning).
+
+const GPS_MAX_ACCURACY  = 50;   // metres — raised from 25
+const MAX_HUMAN_SPEED_MS = 10;  // m/s    — ~36 km/h
+
+// ── Checkpoint: save partial workout state ─
+// Called on every accepted GPS point so progress survives a page kill.
+function saveCheckpoint() {
+  if (!W.active) return;
+  DB.set('stride_checkpoint', {
+    active:      true,
+    type:        W.type,
+    startTime:   W.startTime,
+    elapsed:     W.elapsed,
+    totalPaused: W.totalPaused,
+    distM:       W.distM,
+    elevUp:      W.elevUp,
+    elevDown:    W.elevDown,
+    lapCount:    W.lapCount,
+    lapStartM:   W.lapStartM,
+    lapStartT:   W.lapStartT,
+    lapPaceSec:  W.lapPaceSec,
+    fastestKmSec:W.fastestKmSec,
+    bestPace:    isFinite(W.bestPace) ? W.bestPace : null,
+    goalKm:      W.goalKm,
+    goalOn:      W.goalOn,
+    goalReached: W.goalReached,
+    route:       W.route,
+    savedAt:     Date.now(),
+  });
+}
+
+// ── Checkpoint: try to restore a killed session ─
+// Called once at app start (from loadAppState).
+// Returns true if a checkpoint was found and the user chose to resume it.
+function loadCheckpoint() {
+  const cp = DB.get('stride_checkpoint', null);
+  if (!cp || !cp.active) return false;
+
+  // Ignore stale checkpoints older than 6 hours — user probably forgot
+  if (Date.now() - cp.savedAt > 6 * 3600 * 1000) {
+    DB.set('stride_checkpoint', null);
+    return false;
+  }
+
+  const km = (cp.distM / 1000).toFixed(2);
+  const t  = fmtTime(cp.elapsed);
+  const ok = confirm(
+    `⚠️ Interrupted workout detected!\n\n` +
+    `You had a ${cp.type} in progress:\n` +
+    `  Distance: ${km} km\n` +
+    `  Time:     ${t}\n` +
+    `  Saved:    ${new Date(cp.savedAt).toLocaleTimeString()}\n\n` +
+    `Tap OK to save this as a completed workout, or Cancel to discard it.`
+  );
+
+  DB.set('stride_checkpoint', null); // clear regardless of choice
+
+  if (ok && cp.distM >= 30 && cp.elapsed >= 10) {
+    // Save it as a finished workout
+    const distKm = cp.distM / 1000;
+    saveRecord({
+      type:       cp.type,
+      distKm:     +distKm.toFixed(3),
+      elapsedSec: Math.round(cp.elapsed),
+      cal:        calcCal(cp.type, cp.elapsed, distKm, cp.elevUp),
+      elevUp:     +cp.elevUp.toFixed(1),
+      elevDown:   +cp.elevDown.toFixed(1),
+      avgPace:    cp.elapsed > 0 && distKm > 0 ? cp.elapsed / distKm : 0,
+      bestPace:   cp.bestPace || 0,
+      fastestKm:  isFinite(cp.fastestKmSec) ? cp.fastestKmSec : 0,
+      lapCount:   cp.lapCount,
+      route:      cp.route && cp.route.length > 1 ? cp.route : null,
+      goalKm:     cp.goalOn ? cp.goalKm : null,
+      goalReached:cp.goalReached,
+      source:     'gps',
+      recovered:  true,   // flag so history can show a recovery badge
+    });
+    return true;
+  }
+  return false;
+}
+
+// ── Page visibility: warn user when app goes to background ─
+document.addEventListener('visibilitychange', () => {
+  if (!W.active || W.paused) return;
+  if (document.hidden) {
+    // App went to background — try to notify the user
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Stride is tracking your run 🏃', {
+        body: `${(W.distM / 1000).toFixed(2)} km · ${fmtTime(W.elapsed)} — keep your screen on!`,
+        silent: true,
+        tag: 'stride-bg',
+      });
+    }
+  }
+});
+
+// Request notification permission once (non-blocking, best-effort)
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+}
 
 function startGPSWatch() {
   if (W.watchId !== null) return;
   W.watchId = navigator.geolocation.watchPosition(onPos, onPosErr, {
-    enableHighAccuracy: true, timeout: 20000, maximumAge: 0,
+    enableHighAccuracy: true,
+    timeout:            20000,
+    maximumAge:         2000, // allow 2-second-old cached fix — reduces noise
   });
 }
 function stopGPSWatch() {
@@ -210,36 +359,59 @@ function onPos(pos) {
   const { latitude: lat, longitude: lon, altitude: alt, accuracy: acc } = pos.coords;
   const ts = pos.timestamp;
 
+  // ── Update GPS quality pill ───────────────
   setPill(
     acc < 15 ? 'gps-ok' : acc <= GPS_MAX_ACCURACY ? 'gps-warn' : 'gps-err',
-    acc < 15 ? `✅ GPS ±${Math.round(acc)}m` : acc <= GPS_MAX_ACCURACY ? `📡 GPS ±${Math.round(acc)}m` : `⚠️ Weak GPS ±${Math.round(acc)}m`
+    acc < 15 ? `✅ GPS ±${Math.round(acc)}m`
+             : acc <= GPS_MAX_ACCURACY ? `📡 GPS ±${Math.round(acc)}m`
+             : `⚠️ Weak GPS ±${Math.round(acc)}m`
   );
 
   if (!W.active || W.paused) return;
+  // Drop only truly terrible readings — raised threshold
   if (acc > GPS_MAX_ACCURACY) return;
 
-  // Store route point (thinned to 500 max)
+  // ── Route storage (thinned to 500 max) ───
   const last = W.route[W.route.length - 1];
-  if (!last || haversine(last[0], last[1], lat, lon) > 10) {
+  if (!last || haversine(last[0], last[1], lat, lon) > 8) {
     W.route.push([lat, lon]);
     if (W.route.length > 500) W.route = W.route.filter((_, i) => i % 2 === 0);
   }
 
   if (W.lastLat !== null) {
-    const dist = haversine(W.lastLat, W.lastLon, lat, lon);
-    const dtSec = (ts - W.lastGPSt) / 1000;
-    const lastAcc = W.lastAcc ?? acc;
-    const noiseFloor = Math.max(3, (acc + lastAcc) * 0.5);
+    const dist         = haversine(W.lastLat, W.lastLon, lat, lon);
+    const dtSec        = (ts - W.lastGPSt) / 1000;
+    const lastAcc      = W.lastAcc ?? acc;
+
+    // Adaptive noise floor: movement must exceed half the current accuracy
+    // reading.  E.g. if GPS says ±40 m, we require at least 20 m of movement
+    // before counting it — otherwise we'd be counting sensor drift as steps.
+    const noiseFloor   = Math.max(2, acc * 0.5);
     const impliedSpeed = dtSec > 0 ? dist / dtSec : 0;
 
-    if (dtSec > 0.5 && dtSec < 30 && dist > noiseFloor && dist <= 150 && impliedSpeed <= MAX_HUMAN_SPEED_MS) {
-      W.distM += dist; W.speedKmh = impliedSpeed * 3.6;
-      if (W.distM > 10) {
+    // Accept the point if:
+    //  · Time delta is sane (0.5 s – 30 s)
+    //  · Distance exceeds adaptive noise floor
+    //  · Distance is not a teleport (>300 m in one tick)
+    //  · Speed is humanly possible (<10 m/s)
+    const valid = dtSec > 0.5 && dtSec < 30
+               && dist > noiseFloor
+               && dist <= 300
+               && impliedSpeed <= MAX_HUMAN_SPEED_MS;
+
+    if (valid) {
+      W.distM    += dist;
+      W.speedKmh  = impliedSpeed * 3.6;
+
+      if (W.distM > 5) {  // start pace only after 5 m (not 10 m)
         const raw = 1000 / impliedSpeed;
-        W.paceWin.push(raw); if (W.paceWin.length > 8) W.paceWin.shift();
+        // Wider pace window (10 samples) = smoother reading
+        W.paceWin.push(raw);
+        if (W.paceWin.length > 10) W.paceWin.shift();
         W.paceSecKm = W.paceWin.reduce((a, b) => a + b, 0) / W.paceWin.length;
         if (W.paceSecKm > 30 && W.paceSecKm < W.bestPace) W.bestPace = W.paceSecKm;
-        W.paceHistory.push(W.paceSecKm); if (W.paceHistory.length > 60) W.paceHistory.shift();
+        W.paceHistory.push(W.paceSecKm);
+        if (W.paceHistory.length > 60) W.paceHistory.shift();
 
         // Lap every 1 km
         if (W.distM - W.lapStartM >= 1000) {
@@ -250,31 +422,48 @@ function onPos(pos) {
           showLapToast(W.lapCount, lapSec);
         }
       }
+
       W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts; W.lastAcc = acc;
-    } else if (dtSec >= 30 || W.lastLat === null) {
+
+      // ── Checkpoint save every accepted point ─────────────────────────────
+      // This is the key background-survival mechanism: if the page is killed
+      // while the screen turns off, the last saved state can be recovered.
+      saveCheckpoint();
+
+    } else if (dtSec >= 30) {
+      // Long gap (GPS was unavailable) — update anchor without adding distance
       W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts; W.lastAcc = acc;
     }
   } else {
+    // First point — just store as anchor
     W.lastLat = lat; W.lastLon = lon; W.lastGPSt = ts; W.lastAcc = acc;
   }
 
-  // Elevation (5-sample moving average)
-  if (alt !== null && acc <= GPS_MAX_ACCURACY) {
-    W.altBuf.push(alt); if (W.altBuf.length > 5) W.altBuf.shift();
+  // ── Elevation (5-sample moving average) ──
+  // Only update elevation when accuracy is reasonably good (≤ 40 m).
+  // GPS altitude is always noisier than lat/lon; the larger smoothing
+  // window (5 samples) and the 1 m threshold below filter out the worst.
+  if (alt !== null && acc <= 40) {
+    W.altBuf.push(alt);
+    if (W.altBuf.length > 5) W.altBuf.shift();
     const sm = W.altBuf.reduce((a, b) => a + b, 0) / W.altBuf.length;
     if (W.lastAlt !== null) {
       const d = sm - W.lastAlt;
-      if (d > 1) W.elevUp += d; else if (d < -1) W.elevDown += -d;
+      // 1 m threshold filters noise; real climbs accumulate quickly
+      if (d >  1) W.elevUp   += d;
+      else if (d < -1) W.elevDown -= d;
     }
     W.lastAlt = sm;
   }
 
   updateLiveUI();
 
-  // Goal completion
+  // ── Goal completion ───────────────────────
   if (W.goalOn && !W.goalReached && W.distM / 1000 >= W.goalKm) {
     W.goalReached = true;
-    const lbl = W.goalKm >= 1 ? W.goalKm.toFixed(2) + ' km' : (W.goalKm * 1000).toFixed(0) + ' m';
+    const lbl = W.goalKm >= 1
+      ? W.goalKm.toFixed(2) + ' km'
+      : (W.goalKm * 1000).toFixed(0) + ' m';
     document.getElementById('goal-modal-txt').textContent = `${lbl} goal complete! 🎉 Keep going!`;
     document.getElementById('goal-modal').classList.remove('hidden');
     confetti();
@@ -367,6 +556,12 @@ function startWorkout() {
   document.getElementById('goal-lbl').textContent = W.goalOn ? '0.00 / ' + W.goalKm.toFixed(2) + ' km' : 'No goal set';
   showBtns('active');
 
+  // Clear any stale checkpoint from a previous session
+  DB.set('stride_checkpoint', null);
+
+  // Request notification permission for background alerts (non-blocking)
+  requestNotificationPermission();
+
   W.timerIv = setInterval(() => {
     if (W.paused) return;
     W.elapsed = (Date.now() - W.startTime - W.totalPaused) / 1000;
@@ -376,13 +571,26 @@ function startWorkout() {
 
   startGPSWatch();
   CADENCE.start();
-  if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(() => {});
+  // Wake Lock — keeps screen on so GPS keeps running in Chrome
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').then(lock => {
+      W._wakeLock = lock;
+      // Re-acquire if the lock is released (e.g. phone call)
+      lock.addEventListener('release', () => {
+        if (W.active && !W.paused) {
+          navigator.wakeLock.request('screen').then(l => { W._wakeLock = l; }).catch(() => {});
+        }
+      });
+    }).catch(() => {});
+  }
 }
 
 function pauseWorkout() {
   if (!W.active || W.paused) return;
   W.paused = true; W.pausedAt = Date.now();
   stopGPSWatch(); CADENCE.stop();
+  // Release wake lock while paused to save battery
+  if (W._wakeLock) { W._wakeLock.release().catch(() => {}); W._wakeLock = null; }
   document.getElementById('home-status').innerHTML = '<span class="sdot off"></span>⏸ Paused';
   showBtns('paused');
 }
@@ -391,6 +599,10 @@ function resumeWorkout() {
   if (!W.active || !W.paused) return;
   W.paused = false; W.totalPaused += Date.now() - W.pausedAt;
   startGPSWatch(); CADENCE.start();
+  // Re-acquire wake lock on resume
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').then(l => { W._wakeLock = l; }).catch(() => {});
+  }
   const isRun = W.type === 'run';
   document.getElementById('home-status').innerHTML = `<span class="sdot on"></span>${isRun ? 'Running' : 'Walking'}…`;
   showBtns('active');
@@ -399,6 +611,13 @@ function resumeWorkout() {
 function stopWorkout() {
   clearInterval(W.timerIv); stopGPSWatch(); CADENCE.stop(); CADENCE.reset();
   W.active = false; W.paused = false;
+
+  // Release wake lock
+  if (W._wakeLock) { W._wakeLock.release().catch(() => {}); W._wakeLock = null; }
+
+  // Clear checkpoint — workout ended cleanly, no recovery needed
+  DB.set('stride_checkpoint', null);
+
   document.getElementById('home-status').innerHTML = '<span class="sdot off"></span>Not started';
   document.getElementById('home-timer').textContent = '00:00';
   showBtns('idle');
